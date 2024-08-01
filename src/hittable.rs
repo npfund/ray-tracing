@@ -1,6 +1,6 @@
-use std::ops::{Range};
 use crate::ray::Ray;
 use crate::vec3::Vec3;
+use std::ops::Range;
 
 pub struct HitRecord {
     pub point: Vec3,

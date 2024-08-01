@@ -1,14 +1,12 @@
-use crate::hittable::{Hittable, Sphere};
-use crate::ray::Ray;
-use crate::vec3::Vec3;
-use image::{ImageBuffer, Rgb};
 use crate::camera::Camera;
+use crate::hittable::{Hittable, Sphere};
+use crate::vec3::Vec3;
 
+mod camera;
 mod hittable;
 mod interval;
 mod ray;
 mod vec3;
-mod camera;
 
 fn main() {
     let aspect_ratio = 16.0 / 9.0;
@@ -25,7 +23,7 @@ fn main() {
         }),
     ];
 
-    let camera = Camera::new(aspect_ratio, image_width);
+    let camera = Camera::new(aspect_ratio, image_width, 100);
     let image = camera.render(&world);
 
     image.save("temp.png").unwrap();

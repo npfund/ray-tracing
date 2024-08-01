@@ -63,7 +63,7 @@ impl AddAssign for Vec3 {
         self.0
             .iter_mut()
             .zip(rhs.0.iter())
-            .for_each(|(lhs, rhs)| *lhs -= rhs);
+            .for_each(|(lhs, rhs)| *lhs += rhs);
     }
 }
 
@@ -155,9 +155,9 @@ impl DivAssign<f64> for Vec3 {
 impl From<Vec3> for Rgb<u8> {
     fn from(value: Vec3) -> Self {
         Rgb([
-            (value[0] * 255.999) as u8,
-            (value[1] * 255.999) as u8,
-            (value[2] * 255.999) as u8,
+            (value[0].clamp(0.0, 0.999) * 256.0) as u8,
+            (value[1].clamp(0.0, 0.999) * 256.0) as u8,
+            (value[2].clamp(0.0, 0.999) * 256.0) as u8,
         ])
     }
 }

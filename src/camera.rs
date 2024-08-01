@@ -22,23 +22,23 @@ impl Camera {
         let focal_length = 1.0;
         let viewport_height = 2.0;
         let viewport_width = viewport_height * (image_width as f64 / image_height as f64);
-        let camera_center = Vec3([0.0, 0.0, 0.0]);
+        let camera_center = Vec3::scalar(0.0);
 
-        let viewport_u = Vec3([viewport_width, 0.0, 0.0]);
-        let viewport_v = Vec3([0.0, -viewport_height, 0.0]);
+        let viewport_u = Vec3::x(viewport_width);
+        let viewport_v = Vec3::y(-viewport_height);
 
         let pixel_delta_u = viewport_u / image_width as f64;
         let pixel_delta_v = viewport_v / image_height as f64;
 
         let viewport_upper_left =
-            camera_center - Vec3([0.0, 0.0, focal_length]) - viewport_u / 2.0 - viewport_v / 2.0;
+            camera_center - Vec3::z(focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
         Camera {
             aspect_ratio,
             image_width,
             image_height,
-            center: Vec3([0.0, 0.0, 0.0]),
+            center: Vec3::scalar(0.0),
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
@@ -49,7 +49,7 @@ impl Camera {
     pub fn render(&self, world: &[Box<dyn Hittable>]) -> RgbImage {
         let mut image = RgbImage::new(self.image_width, self.image_height);
         for (x, y, pixel) in image.enumerate_pixels_mut() {
-            let mut color = Vec3([0.0, 0.0, 0.0]);
+            let mut color = Vec3::scalar(0.0);
             for _ in 0..self.samples_per_pixel {
                 let temp = self.get_ray(x, y).color(world);
                 color += temp;

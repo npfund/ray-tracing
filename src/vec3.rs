@@ -5,6 +5,22 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub};
 pub struct Vec3(pub [f64; 3]);
 
 impl Vec3 {
+    pub fn scalar(s: f64) -> Vec3 {
+        Vec3([s, s, s])
+    }
+
+    pub fn x(x: f64) -> Vec3 {
+        Vec3([x, 0.0, 0.0])
+    }
+
+    pub fn y(y: f64) -> Vec3 {
+        Vec3([0.0, y, 0.0])
+    }
+
+    pub fn z(z: f64) -> Vec3 {
+        Vec3([0.0, 0.0, z])
+    }
+
     pub fn length_squared(&self) -> f64 {
         self[0].powi(2) + self[1].powi(2) + self[2].powi(2)
     }

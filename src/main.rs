@@ -4,7 +4,6 @@ use crate::vec3::Vec3;
 
 mod camera;
 mod hittable;
-mod interval;
 mod ray;
 mod vec3;
 

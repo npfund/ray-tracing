@@ -13,11 +13,11 @@ impl Ray {
 
     pub fn color(&self, world: &[Box<dyn Hittable>]) -> Vec3 {
         if let Some(hit) = world.hit(self, 0.0..f64::MAX) {
-            return 0.5 * (hit.normal + Vec3([1.0, 1.0, 1.0]));
+            return 0.5 * (hit.normal + Vec3::scalar(1.0));
         }
 
         let unit_direction = self.direction.unit();
         let a = 0.5 * (unit_direction[1] + 1.0);
-        (1.0 - a) * Vec3([1.0, 1.0, 1.0]) + a * Vec3([0.5, 0.7, 1.0])
+        (1.0 - a) * Vec3::scalar(1.0) + a * Vec3([0.5, 0.7, 1.0])
     }
 }

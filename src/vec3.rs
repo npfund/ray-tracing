@@ -1,5 +1,5 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub};
 use image::Rgb;
+use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub struct Vec3(pub [f64; 3]);
@@ -54,11 +54,7 @@ impl Add for Vec3 {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Vec3([
-            self[0] + rhs[0],
-            self[1] + rhs[1],
-            self[2] + rhs[2],
-        ])
+        Vec3([self[0] + rhs[0], self[1] + rhs[1], self[2] + rhs[2]])
     }
 }
 
@@ -84,11 +80,31 @@ impl Sub for Vec3 {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Vec3([
-            self[0] - rhs[0],
-            self[1] - rhs[1],
-            self[2] - rhs[2],
-        ])
+        Vec3([self[0] - rhs[0], self[1] - rhs[1], self[2] - rhs[2]])
+    }
+}
+
+impl Sub for &Vec3 {
+    type Output = Vec3;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Vec3([self[0] - rhs[0], self[1] - rhs[1], self[2] - rhs[2]])
+    }
+}
+
+impl Sub<Vec3> for &Vec3 {
+    type Output = Vec3;
+
+    fn sub(self, rhs: Vec3) -> Self::Output {
+        Vec3([self[0] - rhs[0], self[1] - rhs[1], self[2] - rhs[2]])
+    }
+}
+
+impl Sub<&Vec3> for Vec3 {
+    type Output = Vec3;
+
+    fn sub(self, rhs: &Vec3) -> Self::Output {
+        Vec3([self[0] - rhs[0], self[1] - rhs[1], self[2] - rhs[2]])
     }
 }
 
@@ -96,11 +112,7 @@ impl Mul for Vec3 {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        Vec3([
-            self[0] * rhs[0],
-            self[1] * rhs[1],
-            self[2] * rhs[2],
-        ])
+        Vec3([self[0] * rhs[0], self[1] * rhs[1], self[2] * rhs[2]])
     }
 }
 

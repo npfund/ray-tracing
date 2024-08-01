@@ -1,11 +1,12 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub};
+use image::Rgb;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
-pub struct Vec3([f64; 3]);
+pub struct Vec3(pub [f64; 3]);
 
 impl Vec3 {
     pub fn length_squared(&self) -> f64 {
-        self.0[0].powi(2) + self.0[1].powi(2) + self.0[2].powi(2)
+        self[0].powi(2) + self[1].powi(2) + self[2].powi(2)
     }
 
     pub fn length(&self) -> f64 {
@@ -22,9 +23,9 @@ impl Vec3 {
 
     pub fn cross(&self, rhs: &Self) -> Self {
         Vec3([
-            self.0[1] * rhs.0[2] - self.0[2] * rhs.0[1],
-            self.0[2] * rhs.0[0] - self.0[0] * rhs.0[2],
-            self.0[0] * rhs.0[1] - self.0[1] * rhs.0[0],
+            self[1] * rhs[2] - self[2] * rhs[1],
+            self[2] * rhs[0] - self[0] * rhs[2],
+            self[0] * rhs[1] - self[1] * rhs[0],
         ])
     }
 
@@ -37,7 +38,7 @@ impl Neg for Vec3 {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Vec3([-self.0[0], -self.0[1], -self.0[2]])
+        Vec3([-self[0], -self[1], -self[2]])
     }
 }
 
@@ -54,9 +55,9 @@ impl Add for Vec3 {
 
     fn add(self, rhs: Self) -> Self::Output {
         Vec3([
-            self.0[0] + rhs.0[0],
-            self.0[1] + rhs.0[1],
-            self.0[2] + rhs.0[2],
+            self[0] + rhs[0],
+            self[1] + rhs[1],
+            self[2] + rhs[2],
         ])
     }
 }
@@ -84,9 +85,9 @@ impl Sub for Vec3 {
 
     fn sub(self, rhs: Self) -> Self::Output {
         Vec3([
-            self.0[0] - rhs.0[0],
-            self.0[1] - rhs.0[1],
-            self.0[2] - rhs.0[2],
+            self[0] - rhs[0],
+            self[1] - rhs[1],
+            self[2] - rhs[2],
         ])
     }
 }
@@ -96,9 +97,9 @@ impl Mul for Vec3 {
 
     fn mul(self, rhs: Self) -> Self::Output {
         Vec3([
-            self.0[0] * rhs.0[0],
-            self.0[1] * rhs.0[1],
-            self.0[2] * rhs.0[2],
+            self[0] * rhs[0],
+            self[1] * rhs[1],
+            self[2] * rhs[2],
         ])
     }
 }
@@ -107,7 +108,15 @@ impl Mul<f64> for Vec3 {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self::Output {
-        Vec3([self.0[0] * rhs, self.0[1] * rhs, self.0[2] * rhs])
+        Vec3([self[0] * rhs, self[1] * rhs, self[2] * rhs])
+    }
+}
+
+impl Mul<Vec3> for f64 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: Vec3) -> Self::Output {
+        Vec3([rhs[0] * self, rhs[1] * self, rhs[2] * self])
     }
 }
 
@@ -121,12 +130,22 @@ impl Div<f64> for Vec3 {
     type Output = Self;
 
     fn div(self, rhs: f64) -> Self::Output {
-        Vec3([self.0[0] / rhs, self.0[1] / rhs, self.0[2] / rhs])
+        Vec3([self[0] / rhs, self[1] / rhs, self[2] / rhs])
     }
 }
 
 impl DivAssign<f64> for Vec3 {
     fn div_assign(&mut self, rhs: f64) {
         self.0.iter_mut().for_each(|x| *x /= rhs);
+    }
+}
+
+impl From<Vec3> for Rgb<u8> {
+    fn from(value: Vec3) -> Self {
+        Rgb([
+            (value[0] * 255.999) as u8,
+            (value[1] * 255.999) as u8,
+            (value[2] * 255.999) as u8,
+        ])
     }
 }

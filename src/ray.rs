@@ -1,3 +1,4 @@
+use crate::hittable::Hittable;
 use crate::vec3::Vec3;
 
 pub struct Ray {
@@ -10,11 +11,9 @@ impl Ray {
         self.origin + self.direction * t
     }
 
-    pub fn color(&self) -> Vec3 {
-        let t = crate::hit_sphere(&Vec3([0.0, 0.0, -1.0]), 0.5, self);
-        if t > 0.0 {
-            let n = (self.at(t) - Vec3([0.0, 0.0, -1.0])).unit();
-            return 0.5 * Vec3([n[0] + 1.0, n[1] + 1.0, n[2] + 1.0]);
+    pub fn color(&self, world: &[Box<dyn Hittable>]) -> Vec3 {
+        if let Some(hit) = world.hit(self, 0.0..f64::MAX) {
+            return 0.5 * (hit.normal + Vec3([1.0, 1.0, 1.0]));
         }
 
         let unit_direction = self.direction.unit();

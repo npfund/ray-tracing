@@ -1,7 +1,10 @@
+use crate::hittable::{Hittable, Sphere};
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use image::{ImageBuffer, Rgb};
 
+mod hittable;
+mod interval;
 mod ray;
 mod vec3;
 
@@ -25,6 +28,17 @@ fn main() {
         camera_center - Vec3([0.0, 0.0, focal_length]) - viewport_u / 2.0 - viewport_v / 2.0;
     let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
+    let world: Vec<Box<dyn Hittable>> = vec![
+        Box::new(Sphere {
+            center: Vec3([0.0, 0.0, -1.0]),
+            radius: 0.5,
+        }),
+        Box::new(Sphere {
+            center: Vec3([0.0, -100.5, -1.0]),
+            radius: 100.0,
+        }),
+    ];
+
     let mut image = ImageBuffer::new(image_width, image_height);
     for (x, y, pixel) in image.enumerate_pixels_mut() {
         let pixel_center = pixel00_loc + (x as f64 * pixel_delta_u) + (y as f64 * pixel_delta_v);
@@ -34,23 +48,9 @@ fn main() {
             direction: ray_direction,
         };
 
-        let color: Rgb<u8> = ray.color().into();
+        let color: Rgb<u8> = ray.color(&world).into();
         *pixel = color;
     }
 
     image.save("temp.png").unwrap();
-}
-
-fn hit_sphere(center: &Vec3, radius: f64, ray: &Ray) -> f64 {
-    let oc = center - ray.origin;
-    let a = ray.direction.length_squared();
-    let h = ray.direction.dot(&oc);
-    let c = oc.length_squared() - radius.powi(2);
-    let discriminant = h.powi(2) - a * c;
-
-    if discriminant < 0.0 {
-        -1.0
-    } else {
-        (h - discriminant.sqrt()) / a
-    }
 }

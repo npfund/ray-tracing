@@ -1,5 +1,6 @@
 use image::Rgb;
 use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub};
+use rand::Rng;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub struct Vec3(pub [f64; 3]);
@@ -19,6 +20,39 @@ impl Vec3 {
 
     pub fn z(z: f64) -> Vec3 {
         Vec3([0.0, 0.0, z])
+    }
+
+    pub fn random() -> Vec3 {
+        let mut rand = rand::thread_rng();
+        Vec3([rand.gen::<f64>(), rand.gen::<f64>(), rand.gen::<f64>()])
+    }
+
+    pub fn random_within(min: f64, max: f64) -> Vec3 {
+
+        let mut rand = rand::thread_rng();
+        Vec3([rand.gen_range(min..max), rand.gen_range(min..max), rand.gen_range(min..max)])
+    }
+
+    fn random_within_unit_sphere() -> Vec3 {
+        loop {
+            let p = Vec3::random_within(-1.0, 1.0);
+            if p.length_squared() < 1.0 {
+                return p;
+            }
+        }
+    }
+
+    pub fn random_unit_vector() -> Vec3 {
+        Vec3::random_within_unit_sphere().unit()
+    }
+
+    pub fn random_on_hemisphere(normal: &Vec3) -> Vec3 {
+        let on_sphere = Vec3::random_unit_vector();
+        if on_sphere.dot(normal) > 0.0 {
+            on_sphere
+        } else {
+            -on_sphere
+        }
     }
 
     pub fn length_squared(&self) -> f64 {

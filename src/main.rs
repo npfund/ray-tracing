@@ -22,7 +22,7 @@ fn main() {
         }),
     ];
 
-    let camera = Camera::new(aspect_ratio, image_width, 100);
+    let camera = Camera::new(aspect_ratio, image_width, 100, 50);
     let image = camera.render(&world);
 
     image.save("temp.png").unwrap();

@@ -11,9 +11,15 @@ impl Ray {
         self.origin + self.direction * t
     }
 
-    pub fn color(&self, world: &[Box<dyn Hittable>]) -> Vec3 {
-        if let Some(hit) = world.hit(self, 0.0..f64::MAX) {
-            return 0.5 * (hit.normal + Vec3::scalar(1.0));
+    pub fn color(&self, depth: u32, world: &[Box<dyn Hittable>]) -> Vec3 {
+        if depth == 0 {
+            return Vec3::scalar(0.0);
+        }
+
+        if let Some(hit) = world.hit(self, 0.001..f64::MAX) {
+            let direction = Vec3::random_on_hemisphere(&hit.normal);
+            let ray = Ray { origin: hit.point, direction };
+            return 0.5 * ray.color(depth - 1, world);
         }
 
         let unit_direction = self.direction.unit();

@@ -13,10 +13,11 @@ pub struct Camera {
     pixel_delta_u: Vec3,
     pixel_delta_v: Vec3,
     samples_per_pixel: u32,
+    max_depth: u32,
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: u32, samples_per_pixel: u32) -> Self {
+    pub fn new(aspect_ratio: f64, image_width: u32, samples_per_pixel: u32, max_depth: u32) -> Self {
         let image_height = ((image_width as f64 / aspect_ratio) as u32).max(1);
 
         let focal_length = 1.0;
@@ -43,6 +44,7 @@ impl Camera {
             pixel_delta_u,
             pixel_delta_v,
             samples_per_pixel,
+            max_depth,
         }
     }
 
@@ -51,7 +53,7 @@ impl Camera {
         for (x, y, pixel) in image.enumerate_pixels_mut() {
             let mut color = Vec3::scalar(0.0);
             for _ in 0..self.samples_per_pixel {
-                let temp = self.get_ray(x, y).color(world);
+                let temp = self.get_ray(x, y).color(self.max_depth, world);
                 color += temp;
             }
 

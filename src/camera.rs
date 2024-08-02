@@ -17,7 +17,12 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: u32, samples_per_pixel: u32, max_depth: u32) -> Self {
+    pub fn new(
+        aspect_ratio: f64,
+        image_width: u32,
+        samples_per_pixel: u32,
+        max_depth: u32,
+    ) -> Self {
         let image_height = ((image_width as f64 / aspect_ratio) as u32).max(1);
 
         let focal_length = 1.0;
@@ -71,10 +76,7 @@ impl Camera {
         let origin = self.center;
         let direction = pixel_sample - origin;
 
-        Ray {
-            origin,
-            direction,
-        }
+        Ray { origin, direction }
     }
 
     fn sample_square() -> Vec3 {

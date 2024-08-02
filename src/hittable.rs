@@ -1,12 +1,14 @@
+use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use std::ops::Range;
 
-pub struct HitRecord {
+pub struct HitRecord<'m> {
     pub point: Vec3,
     pub normal: Vec3,
     pub t: f64,
     pub front_face: bool,
+    pub material: &'m dyn Material,
 }
 
 pub trait Hittable {
@@ -29,10 +31,10 @@ impl Hittable for &[Box<dyn Hittable>] {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,
+    pub material: Box<dyn Material>,
 }
 
 impl Hittable for Sphere {
@@ -71,6 +73,7 @@ impl Hittable for Sphere {
             normal,
             t: root,
             front_face,
+            material: &*self.material,
         })
     }
 }

@@ -17,9 +17,10 @@ impl Ray {
         }
 
         if let Some(hit) = world.hit(self, 0.001..f64::MAX) {
-            let direction = hit.normal + Vec3::random_unit_vector();
-            let ray = Ray { origin: hit.point, direction };
-            return 0.5 * ray.color(depth - 1, world);
+            if let Some((scattered, attenuation)) = hit.material.scatter(self, &hit) {
+                return attenuation * scattered.color(depth - 1, world);
+            }
+            return Vec3::scalar(0.0);
         }
 
         let unit_direction = self.direction.unit();

@@ -1,6 +1,6 @@
 use image::Rgb;
-use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub};
 use rand::Rng;
+use std::ops::{Add, AddAssign, Div, DivAssign, Index, Mul, MulAssign, Neg, Sub};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub struct Vec3(pub [f64; 3]);
@@ -28,9 +28,12 @@ impl Vec3 {
     }
 
     pub fn random_within(min: f64, max: f64) -> Vec3 {
-
         let mut rand = rand::thread_rng();
-        Vec3([rand.gen_range(min..max), rand.gen_range(min..max), rand.gen_range(min..max)])
+        Vec3([
+            rand.gen_range(min..max),
+            rand.gen_range(min..max),
+            rand.gen_range(min..max),
+        ])
     }
 
     fn random_within_unit_sphere() -> Vec3 {
@@ -81,6 +84,15 @@ impl Vec3 {
 
     pub fn unit(&self) -> Vec3 {
         *self / self.length()
+    }
+
+    pub fn near_zero(&self) -> bool {
+        let s = 1e-8;
+        self[0].abs() < s && self[1].abs() < s && self[2].abs() < s
+    }
+
+    pub fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
+        v - 2.0 * v.dot(n) * *n
     }
 }
 
@@ -204,10 +216,12 @@ impl DivAssign<f64> for Vec3 {
 
 impl From<Vec3> for Rgb<u8> {
     fn from(value: Vec3) -> Self {
-        let mut smudged = value.0.iter().map(|&x| if x > 0.0 {
-            (x.sqrt().clamp(0.0, 0.999) * 256.0) as u8
-        } else {
-            0
+        let mut smudged = value.0.iter().map(|&x| {
+            if x > 0.0 {
+                (x.sqrt().clamp(0.0, 0.999) * 256.0) as u8
+            } else {
+                0
+            }
         });
 
         Rgb([

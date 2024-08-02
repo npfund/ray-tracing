@@ -58,6 +58,16 @@ impl Vec3 {
         }
     }
 
+    pub fn random_in_unit_disk() -> Vec3 {
+        let mut rand = rand::thread_rng();
+        loop {
+            let p = Vec3([rand.gen_range(-1.0..1.0), rand.gen_range(-1.0..1.0), 0.0]);
+            if p.length_squared() < 1.0 {
+                return p;
+            }
+        }
+    }
+
     pub fn length_squared(&self) -> f64 {
         self[0].powi(2) + self[1].powi(2) + self[2].powi(2)
     }

@@ -86,6 +86,8 @@ fn main() {
         Vec3([-2.0, 2.0, 1.0]),
         Vec3([0.0, 0.0, -1.0]),
         Vec3([0.0, 1.0, 0.0]),
+        10.0,
+        3.4,
     );
     let image = camera.render(&world);
 

@@ -17,7 +17,7 @@ impl Ray {
         }
 
         if let Some(hit) = world.hit(self, 0.001..f64::MAX) {
-            let direction = Vec3::random_on_hemisphere(&hit.normal);
+            let direction = hit.normal + Vec3::random_unit_vector();
             let ray = Ray { origin: hit.point, direction };
             return 0.5 * ray.color(depth - 1, world);
         }

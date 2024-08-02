@@ -204,10 +204,16 @@ impl DivAssign<f64> for Vec3 {
 
 impl From<Vec3> for Rgb<u8> {
     fn from(value: Vec3) -> Self {
+        let mut smudged = value.0.iter().map(|&x| if x > 0.0 {
+            (x.sqrt().clamp(0.0, 0.999) * 256.0) as u8
+        } else {
+            0
+        });
+
         Rgb([
-            (value[0].clamp(0.0, 0.999) * 256.0) as u8,
-            (value[1].clamp(0.0, 0.999) * 256.0) as u8,
-            (value[2].clamp(0.0, 0.999) * 256.0) as u8,
+            smudged.next().unwrap(),
+            smudged.next().unwrap(),
+            smudged.next().unwrap(),
         ])
     }
 }

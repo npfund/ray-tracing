@@ -1,6 +1,6 @@
 use crate::camera::Camera;
 use crate::hittable::{Hittable, Sphere};
-use crate::material::{Lambertian, Metal};
+use crate::material::{Dielectric, Lambertian, Metal};
 use crate::vec3::Vec3;
 
 mod camera;
@@ -19,9 +19,11 @@ fn main() {
     let material_center = Lambertian {
         albedo: Vec3([0.1, 0.2, 0.5]),
     };
-    let material_left = Metal {
-        albedo: Vec3([0.8, 0.8, 0.8]),
-        fuzz: 0.3,
+    let material_left = Dielectric {
+        refraction_index: 1.5,
+    };
+    let material_bubble = Dielectric {
+        refraction_index: 1.0 / 1.5,
     };
     let material_right = Metal {
         albedo: Vec3([0.8, 0.6, 0.2]),
@@ -43,6 +45,11 @@ fn main() {
             center: Vec3([-1.0, 0.0, -1.0]),
             radius: 0.5,
             material: Box::new(material_left),
+        }),
+        Box::new(Sphere {
+            center: Vec3([-1.0, 0.0, -1.0]),
+            radius: 0.4,
+            material: Box::new(material_bubble),
         }),
         Box::new(Sphere {
             center: Vec3([1.0, 0.0, -1.0]),

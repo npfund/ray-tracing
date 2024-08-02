@@ -49,7 +49,7 @@ impl Vec3 {
         Vec3::random_within_unit_sphere().unit()
     }
 
-    pub fn random_on_hemisphere(normal: &Vec3) -> Vec3 {
+    pub fn random_on_hemisphere(normal: Vec3) -> Vec3 {
         let on_sphere = Vec3::random_unit_vector();
         if on_sphere.dot(normal) > 0.0 {
             on_sphere
@@ -66,7 +66,7 @@ impl Vec3 {
         self.length_squared().sqrt()
     }
 
-    pub fn dot(&self, rhs: &Self) -> f64 {
+    pub fn dot(&self, rhs: Vec3) -> f64 {
         self.0
             .iter()
             .zip(rhs.0.iter())
@@ -74,7 +74,7 @@ impl Vec3 {
             .sum()
     }
 
-    pub fn cross(&self, rhs: &Self) -> Self {
+    pub fn cross(&self, rhs: Self) -> Self {
         Vec3([
             self[1] * rhs[2] - self[2] * rhs[1],
             self[2] * rhs[0] - self[0] * rhs[2],
@@ -91,8 +91,16 @@ impl Vec3 {
         self[0].abs() < s && self[1].abs() < s && self[2].abs() < s
     }
 
-    pub fn reflect(v: &Vec3, n: &Vec3) -> Vec3 {
-        v - 2.0 * v.dot(n) * *n
+    pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
+        v - 2.0 * v.dot(n) * n
+    }
+
+    pub fn refract(uv: Vec3, n: Vec3, etai_over_etat: f64) -> Vec3 {
+        let cos_theta = (-uv).dot(n).min(1.0);
+        let perp = etai_over_etat * (uv + cos_theta * n);
+        let parallel = -(1.0 - perp.length_squared()).abs().sqrt() * n;
+
+        perp + parallel
     }
 }
 
@@ -129,43 +137,10 @@ impl AddAssign for Vec3 {
     }
 }
 
-impl AddAssign<&Vec3> for Vec3 {
-    fn add_assign(&mut self, rhs: &Vec3) {
-        self.0
-            .iter_mut()
-            .zip(rhs.0.iter())
-            .for_each(|(lhs, rhs)| *lhs += rhs);
-    }
-}
-
 impl Sub for Vec3 {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Vec3([self[0] - rhs[0], self[1] - rhs[1], self[2] - rhs[2]])
-    }
-}
-
-impl Sub for &Vec3 {
-    type Output = Vec3;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Vec3([self[0] - rhs[0], self[1] - rhs[1], self[2] - rhs[2]])
-    }
-}
-
-impl Sub<Vec3> for &Vec3 {
-    type Output = Vec3;
-
-    fn sub(self, rhs: Vec3) -> Self::Output {
-        Vec3([self[0] - rhs[0], self[1] - rhs[1], self[2] - rhs[2]])
-    }
-}
-
-impl Sub<&Vec3> for Vec3 {
-    type Output = Vec3;
-
-    fn sub(self, rhs: &Vec3) -> Self::Output {
         Vec3([self[0] - rhs[0], self[1] - rhs[1], self[2] - rhs[2]])
     }
 }

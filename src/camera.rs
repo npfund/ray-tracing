@@ -23,31 +23,38 @@ impl Camera {
         samples_per_pixel: u32,
         max_depth: u32,
         vfov: f64,
+        look_from: Vec3,
+        look_at: Vec3,
+        vup: Vec3,
     ) -> Self {
         let image_height = ((image_width as f64 / aspect_ratio) as u32).max(1);
 
-        let focal_length = 1.0;
+        let center = look_from;
+
+        let focal_length = (look_from - look_at).length();
         let theta = vfov.to_radians();
         let h = (theta / 2.0).tan();
         let viewport_height = 2.0 * h * focal_length;
         let viewport_width = viewport_height * (image_width as f64 / image_height as f64);
-        let camera_center = Vec3::scalar(0.0);
 
-        let viewport_u = Vec3::x(viewport_width);
-        let viewport_v = Vec3::y(-viewport_height);
+        let w = (look_from - look_at).unit();
+        let u = vup.cross(w).unit();
+        let v = w.cross(u);
+
+        let viewport_u = viewport_width * u;
+        let viewport_v = viewport_height * -v;
 
         let pixel_delta_u = viewport_u / image_width as f64;
         let pixel_delta_v = viewport_v / image_height as f64;
 
-        let viewport_upper_left =
-            camera_center - Vec3::z(focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
+        let viewport_upper_left = center - (focal_length * w) - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
         Camera {
             aspect_ratio,
             image_width,
             image_height,
-            center: Vec3::scalar(0.0),
+            center,
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,

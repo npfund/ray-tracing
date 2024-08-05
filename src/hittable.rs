@@ -1,7 +1,8 @@
+use crate::aabb::Aabb;
+use crate::interval::Interval;
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use std::ops::Range;
 
 pub struct HitRecord<'m> {
     pub point: Vec3,
@@ -12,22 +13,40 @@ pub struct HitRecord<'m> {
 }
 
 pub trait Hittable {
-    fn hit(&self, ray: &Ray, ray_t: Range<f64>) -> Option<HitRecord>;
+    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord>;
+
+    fn bounding_box(&self) -> Aabb;
 }
 
 impl Hittable for &[Box<dyn Hittable>] {
-    fn hit(&self, ray: &Ray, ray_t: Range<f64>) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let mut hit = None;
-        let mut closest_so_far = ray_t.end;
+        let mut closest_so_far = ray_t.max;
 
         for thing in self.iter() {
-            if let Some(temp) = thing.hit(ray, ray_t.start..closest_so_far) {
+            if let Some(temp) = thing.hit(ray, Interval::new(ray_t.min, closest_so_far)) {
                 closest_so_far = temp.t;
                 hit = Some(temp);
             }
         }
 
         hit
+    }
+
+    fn bounding_box(&self) -> Aabb {
+        if self.is_empty() {
+            return Aabb::from_points(Vec3::scalar(0.0), Vec3::scalar(0.0));
+        }
+
+        let mut bounds = Aabb::from_bounds(
+            self.first().unwrap().bounding_box(),
+            self.first().unwrap().bounding_box(),
+        );
+        for thing in self.iter() {
+            bounds = Aabb::from_bounds(bounds, thing.bounding_box());
+        }
+
+        bounds
     }
 }
 
@@ -40,22 +59,30 @@ pub struct Sphere {
     center: Center,
     radius: f64,
     material: Box<dyn Material>,
+    bounds: Aabb,
 }
 
 impl Sphere {
     pub fn new(center: Vec3, radius: f64, material: Box<dyn Material>) -> Sphere {
+        let rvec = Vec3::scalar(radius);
         Sphere {
             center: Center::Stationary(center),
             radius,
             material,
+            bounds: Aabb::from_points(center - rvec, center + rvec),
         }
     }
 
     pub fn moving(start: Vec3, end: Vec3, radius: f64, material: Box<dyn Material>) -> Sphere {
+        let rvec = Vec3::scalar(radius);
+        let box1 = Aabb::from_points(start - rvec, start + rvec);
+        let box2 = Aabb::from_points(end - rvec, end + rvec);
+
         Sphere {
             center: Center::InMotion(start, end - start),
             radius,
             material,
+            bounds: Aabb::from_bounds(box1, box2),
         }
     }
 
@@ -68,7 +95,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray, ray_t: Range<f64>) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let center = self.center(ray.time);
         let oc = center - ray.origin;
         let a = ray.direction.length_squared();
@@ -83,9 +110,9 @@ impl Hittable for Sphere {
         let sqrtd = discriminant.sqrt();
 
         let mut root = (h - sqrtd) / a;
-        if root <= ray_t.start || ray_t.end <= root {
+        if !ray_t.surrounds(root) {
             root = (h + sqrtd) / a;
-            if root <= ray_t.start || ray_t.end <= root {
+            if !ray_t.surrounds(root) {
                 return None;
             }
         }
@@ -106,5 +133,9 @@ impl Hittable for Sphere {
             front_face,
             material: &*self.material,
         })
+    }
+
+    fn bounding_box(&self) -> Aabb {
+        self.bounds.clone()
     }
 }

@@ -1,11 +1,15 @@
+use crate::bvh::Node;
 use crate::camera::Camera;
 use crate::hittable::{Hittable, Sphere};
 use crate::material::{Dielectric, Lambertian, Material, Metal};
 use crate::vec3::Vec3;
 use rand::Rng;
 
+mod aabb;
+mod bvh;
 mod camera;
 mod hittable;
+mod interval;
 mod material;
 mod ray;
 mod vec3;
@@ -147,6 +151,8 @@ fn main() {
         1.0,
         Box::new(material_3),
     )));
+
+    let world: Vec<Box<dyn Hittable>> = vec![Box::new(Node::from_list(world))];
 
     let camera = Camera::new(
         16.0 / 9.0,

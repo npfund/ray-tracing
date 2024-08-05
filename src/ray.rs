@@ -1,4 +1,5 @@
 use crate::hittable::Hittable;
+use crate::interval::Interval;
 use crate::vec3::Vec3;
 
 pub struct Ray {
@@ -17,7 +18,7 @@ impl Ray {
             return Vec3::scalar(0.0);
         }
 
-        if let Some(hit) = world.hit(self, 0.001..f64::MAX) {
+        if let Some(hit) = world.hit(self, Interval::new(0.001, f64::MAX)) {
             if let Some((scattered, attenuation)) = hit.material.scatter(self, &hit) {
                 return attenuation * scattered.color(depth - 1, world);
             }

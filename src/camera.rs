@@ -57,7 +57,6 @@ impl Camera {
         let defocus_disk_u = u * defocus_radius;
         let defocus_disk_v = v * defocus_radius;
 
-
         Camera {
             image_width,
             image_height,
@@ -95,13 +94,18 @@ impl Camera {
             + (y as f64 + offset[1]) * self.pixel_delta_v;
         let origin = if self.defocus_angle <= 0.0 {
             self.center
-        }  else {
+        } else {
             self.defocus_disk_sample()
         };
 
         let direction = pixel_sample - origin;
 
-        Ray { origin, direction }
+        let mut rand = rand::thread_rng();
+        Ray {
+            origin,
+            direction,
+            time: rand.gen(),
+        }
     }
 
     fn sample_square() -> Vec3 {

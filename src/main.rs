@@ -1,8 +1,8 @@
-use rand::Rng;
 use crate::camera::Camera;
 use crate::hittable::{Hittable, Sphere};
 use crate::material::{Dielectric, Lambertian, Material, Metal};
 use crate::vec3::Vec3;
+use rand::Rng;
 
 mod camera;
 mod hittable;
@@ -82,19 +82,21 @@ fn main() {
         albedo: Vec3::scalar(0.5),
     };
 
-    let mut world: Vec<Box<dyn Hittable>> = vec![
-        Box::new(Sphere {
-            center: Vec3([0.0, -1000.0, 0.0]),
-            radius: 1000.0,
-            material: Box::new(ground_material),
-        })
-    ];
+    let mut world: Vec<Box<dyn Hittable>> = vec![Box::new(Sphere::new(
+        Vec3([0.0, -1000.0, 0.0]),
+        1000.0,
+        Box::new(ground_material),
+    ))];
 
     let mut rand = rand::thread_rng();
     for a in -11..11 {
         for b in -11..11 {
             let mat = rand.gen::<f64>();
-            let center = Vec3([a as f64 + 0.9 * rand.gen::<f64>(), 0.2, b as f64 + 0.9 * rand.gen::<f64>()]);
+            let center = Vec3([
+                a as f64 + 0.9 * rand.gen::<f64>(),
+                0.2,
+                b as f64 + 0.9 * rand.gen::<f64>(),
+            ]);
 
             if (center - Vec3([4.0, 0.2, 0.0])).length() > 0.9 {
                 let material: Box<dyn Material> = if mat < 0.9 {
@@ -112,11 +114,8 @@ fn main() {
                     })
                 };
 
-                world.push(Box::new(Sphere {
-                    center,
-                    radius: 0.2,
-                    material,
-                }));
+                let end = center + Vec3([0.0, rand.gen(), 0.0]);
+                world.push(Box::new(Sphere::moving(center, end, 0.2, material)));
             }
         }
     }
@@ -124,35 +123,35 @@ fn main() {
     let material_1 = Dielectric {
         refraction_index: 1.5,
     };
-    world.push(Box::new(Sphere {
-        center: Vec3([0.0, 1.0, 0.0]),
-        radius: 1.0,
-        material: Box::new(material_1),
-    }));
+    world.push(Box::new(Sphere::new(
+        Vec3([0.0, 1.0, 0.0]),
+        1.0,
+        Box::new(material_1),
+    )));
 
     let material_2 = Lambertian {
         albedo: Vec3([0.4, 0.2, 0.1]),
     };
-    world.push(Box::new(Sphere {
-        center: Vec3([-4.0, 1.0, 0.0]),
-        radius: 1.0,
-        material: Box::new(material_2),
-    }));
+    world.push(Box::new(Sphere::new(
+        Vec3([-4.0, 1.0, 0.0]),
+        1.0,
+        Box::new(material_2),
+    )));
 
     let material_3 = Metal {
         albedo: Vec3([0.7, 0.6, 0.5]),
         fuzz: 0.0,
     };
-    world.push(Box::new(Sphere {
-        center: Vec3([4.0, 1.0, 0.0]),
-        radius: 1.0,
-        material: Box::new(material_3),
-    }));
+    world.push(Box::new(Sphere::new(
+        Vec3([4.0, 1.0, 0.0]),
+        1.0,
+        Box::new(material_3),
+    )));
 
     let camera = Camera::new(
         16.0 / 9.0,
-        1200,
-        500,
+        400,
+        100,
         50,
         20.0,
         Vec3([13.0, 2.0, 3.0]),

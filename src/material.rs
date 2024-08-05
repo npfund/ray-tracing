@@ -14,7 +14,7 @@ pub struct Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vec3)> {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vec3)> {
         let potential_direction = hit.normal + Vec3::random_unit_vector();
         let direction = if potential_direction.near_zero() {
             hit.normal
@@ -25,6 +25,7 @@ impl Material for Lambertian {
         let scattered = Ray {
             origin: hit.point,
             direction,
+            time: ray.time,
         };
 
         Some((scattered, self.albedo))
@@ -43,6 +44,7 @@ impl Material for Metal {
         let scattered = Ray {
             origin: hit.point,
             direction: reflected,
+            time: ray.time,
         };
 
         if scattered.direction.dot(hit.normal) > 0.0 {
@@ -90,6 +92,7 @@ impl Material for Dielectric {
         let scattered = Ray {
             origin: hit.point,
             direction,
+            time: ray.time,
         };
 
         Some((scattered, attenuation))

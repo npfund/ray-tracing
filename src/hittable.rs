@@ -31,15 +31,46 @@ impl Hittable for &[Box<dyn Hittable>] {
     }
 }
 
+pub enum Center {
+    Stationary(Vec3),
+    InMotion(Vec3, Vec3),
+}
+
 pub struct Sphere {
-    pub center: Vec3,
-    pub radius: f64,
-    pub material: Box<dyn Material>,
+    center: Center,
+    radius: f64,
+    material: Box<dyn Material>,
+}
+
+impl Sphere {
+    pub fn new(center: Vec3, radius: f64, material: Box<dyn Material>) -> Sphere {
+        Sphere {
+            center: Center::Stationary(center),
+            radius,
+            material,
+        }
+    }
+
+    pub fn moving(start: Vec3, end: Vec3, radius: f64, material: Box<dyn Material>) -> Sphere {
+        Sphere {
+            center: Center::InMotion(start, end - start),
+            radius,
+            material,
+        }
+    }
+
+    pub fn center(&self, time: f64) -> Vec3 {
+        match self.center {
+            Center::Stationary(center) => center,
+            Center::InMotion(start, direction) => start + direction * time,
+        }
+    }
 }
 
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, ray_t: Range<f64>) -> Option<HitRecord> {
-        let oc = self.center - ray.origin;
+        let center = self.center(ray.time);
+        let oc = center - ray.origin;
         let a = ray.direction.length_squared();
         let h = ray.direction.dot(oc);
         let c = oc.length_squared() - self.radius.powi(2);
@@ -60,7 +91,7 @@ impl Hittable for Sphere {
         }
 
         let point = ray.at(root);
-        let outward_normal = (point - self.center) / self.radius;
+        let outward_normal = (point - center) / self.radius;
         let front_face = ray.direction.dot(outward_normal) < 0.0;
         let normal = if front_face {
             outward_normal

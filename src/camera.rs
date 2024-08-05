@@ -3,6 +3,7 @@ use crate::ray::Ray;
 use crate::vec3::Vec3;
 use image::RgbImage;
 use rand::Rng;
+use rayon::prelude::*;
 
 pub struct Camera {
     image_width: u32,
@@ -74,7 +75,7 @@ impl Camera {
 
     pub fn render(&self, world: &[Box<dyn Hittable>]) -> RgbImage {
         let mut image = RgbImage::new(self.image_width, self.image_height);
-        for (x, y, pixel) in image.enumerate_pixels_mut() {
+        image.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
             let mut color = Vec3::scalar(0.0);
             for _ in 0..self.samples_per_pixel {
                 let temp = self.get_ray(x, y).color(self.max_depth, world);
@@ -82,7 +83,7 @@ impl Camera {
             }
 
             *pixel = (color / self.samples_per_pixel as f64).into();
-        }
+        });
 
         image
     }

@@ -4,22 +4,24 @@ pub trait Texture: Sync {
     fn value(&self, u: f64, v: f64, point: Vec3) -> Vec3;
 }
 
+#[derive(Debug, Clone)]
 pub struct SolidColor {
-    albedo: Vec3,
+    color: Vec3,
 }
 
 impl SolidColor {
     pub fn new(color: Vec3) -> SolidColor {
-        SolidColor { albedo: color }
+        SolidColor { color }
     }
 }
 
 impl Texture for SolidColor {
     fn value(&self, _u: f64, _v: f64, _point: Vec3) -> Vec3 {
-        self.albedo
+        self.color
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Checker<E, O> {
     pub inv_scale: f64,
     pub even: E,

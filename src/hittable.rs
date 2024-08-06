@@ -1,3 +1,4 @@
+use std::f64::consts::PI;
 use crate::aabb::Aabb;
 use crate::interval::Interval;
 use crate::material::Material;
@@ -94,6 +95,13 @@ impl<M> Sphere<M> {
             Center::InMotion(start, direction) => start + direction * time,
         }
     }
+
+    pub fn get_sphere_uv(&self, point: Vec3) -> (f64, f64) {
+        let theta = (-point[1]).acos();
+        let phi = (-point[2]).atan2(point[0]) + PI;
+
+        (phi / (2.0 * PI), theta / PI)
+    }
 }
 
 impl<M> Hittable for Sphere<M>
@@ -131,14 +139,16 @@ where
             -outward_normal
         };
 
+        let (u, v) = self.get_sphere_uv(outward_normal);
+
         Some(HitRecord {
             point,
             normal,
             t: root,
             front_face,
             material: &self.material,
-            u: 0.0,
-            v: 0.0,
+            u,
+            v,
         })
     }
 

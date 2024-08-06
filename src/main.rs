@@ -33,6 +33,7 @@ fn main() {
         "triplet" => triplet(),
         "bouncing" => bouncing_final(),
         "redblue" => redblue(),
+        "checkered" => checkered(),
         _ => panic!("unknown scene"),
     };
 
@@ -208,6 +209,38 @@ fn bouncing_final() -> RgbImage {
         Vec3([0.0, 0.0, 0.0]),
         Vec3([0.0, 1.0, 0.0]),
         0.6,
+        10.0,
+    );
+
+    camera.render(&world)
+}
+
+fn checkered() -> RgbImage {
+    let ground_material = Lambertian {
+        texture: Checker::new(
+            0.32,
+            SolidColor::new(Vec3([0.2, 0.3, 0.1])),
+            SolidColor::new(Vec3([0.9, 0.9, 0.9])),
+        ),
+    };
+
+    let world: Vec<Box<dyn Hittable>> = vec![
+        Box::new(Sphere::new(Vec3([0.0, -10.0, 0.0]), 10.0, ground_material.clone())),
+        Box::new(Sphere::new(Vec3([0.0, 10.0, 0.0]), 10.0, ground_material)),
+    ];
+
+    let world = Node::from_list(world);
+
+    let camera = Camera::new(
+        16.0 / 9.0,
+        400,
+        100,
+        50,
+        20.0,
+        Vec3([13.0, 2.0, 3.0]),
+        Vec3([0.0, 0.0, 0.0]),
+        Vec3([0.0, 1.0, 0.0]),
+        0.0,
         10.0,
     );
 

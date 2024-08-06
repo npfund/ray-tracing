@@ -10,6 +10,7 @@ pub trait Material: Sync {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Lambertian<T> {
     pub texture: T,
 }

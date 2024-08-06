@@ -8,6 +8,12 @@ pub struct SolidColor {
     pub albedo: Vec3,
 }
 
+impl SolidColor {
+    pub fn new(color: Vec3) -> SolidColor {
+        SolidColor { albedo: color }
+    }
+}
+
 impl Texture for SolidColor {
     fn value(&self, _u: f64, _v: f64, _point: Vec3) -> Vec3 {
         self.albedo

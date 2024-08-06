@@ -4,7 +4,10 @@ use crate::hittable::{Hittable, Sphere};
 use crate::material::{Dielectric, Lambertian, Material, Metal};
 use crate::texture::{Checker, SolidColor};
 use crate::vec3::Vec3;
+use clap::Parser;
+use image::RgbImage;
 use rand::Rng;
+use std::f64::consts::PI;
 
 mod aabb;
 mod bvh;
@@ -16,74 +19,128 @@ mod ray;
 mod texture;
 mod vec3;
 
+#[derive(Debug, Parser)]
+struct Args {
+    #[arg(long)]
+    scene: String,
+    #[arg(long, default_value = "temp.png")]
+    file: String,
+}
+
 fn main() {
-    // let material_ground = Lambertian {
-    //     albedo: Vec3([0.8, 0.8, 0.0]),
-    // };
-    // let material_center = Lambertian {
-    //     albedo: Vec3([0.1, 0.2, 0.5]),
-    // };
-    // let material_left = Dielectric {
-    //     refraction_index: 1.5,
-    // };
-    // let material_bubble = Dielectric {
-    //     refraction_index: 1.0 / 1.5,
-    // };
-    // let material_right = Metal {
-    //     albedo: Vec3([0.8, 0.6, 0.2]),
-    //     fuzz: 1.0,
-    // };
-    //
-    // let world: Vec<Box<dyn Hittable>> = vec![
-    //     Box::new(Sphere {
-    //         center: Vec3([0.0, -100.5, -1.0]),
-    //         radius: 100.0,
-    //         material: Box::new(material_ground),
-    //     }),
-    //     Box::new(Sphere {
-    //         center: Vec3([0.0, 0.0, -1.2]),
-    //         radius: 0.5,
-    //         material: Box::new(material_center),
-    //     }),
-    //     Box::new(Sphere {
-    //         center: Vec3([-1.0, 0.0, -1.0]),
-    //         radius: 0.5,
-    //         material: Box::new(material_left),
-    //     }),
-    //     Box::new(Sphere {
-    //         center: Vec3([-1.0, 0.0, -1.0]),
-    //         radius: 0.4,
-    //         material: Box::new(material_bubble),
-    //     }),
-    //     Box::new(Sphere {
-    //         center: Vec3([1.0, 0.0, -1.0]),
-    //         radius: 0.5,
-    //         material: Box::new(material_right),
-    //     }),
-    // ];
+    let args = Args::parse();
+    let image = match args.scene.as_str() {
+        "triplet" => triplet(),
+        "bouncing" => bouncing_final(),
+        "redblue" => redblue(),
+        _ => panic!("unknown scene"),
+    };
 
-    // let r = (f64::PI() / 4.0).cos();
-    // let material_left = Lambertian {
-    //     albedo: Vec3::z(1.0),
-    // };
-    //
-    // let material_right = Lambertian {
-    //     albedo: Vec3::x(1.0),
-    // };
-    //
-    // let world: Vec<Box<dyn Hittable>> = vec![
-    //     Box::new(Sphere {
-    //         center: Vec3([-r, 0.0, -1.0]),
-    //         radius: r,
-    //         material: Box::new(material_left),
-    //     }),
-    //     Box::new(Sphere {
-    //         center: Vec3([r, 0.0, -1.0]),
-    //         radius: r,
-    //         material: Box::new(material_right),
-    //     }),
-    // ];
+    image.save(args.file).unwrap();
+}
 
+fn triplet() -> RgbImage {
+    let material_ground = Lambertian {
+        texture: Box::new(SolidColor::new(Vec3([0.8, 0.8, 0.0]))),
+    };
+    let material_center = Lambertian {
+        texture: Box::new(SolidColor::new(Vec3([0.1, 0.2, 0.5]))),
+    };
+    let material_left = Dielectric {
+        refraction_index: 1.5,
+    };
+    let material_bubble = Dielectric {
+        refraction_index: 1.0 / 1.5,
+    };
+    let material_right = Metal {
+        albedo: Vec3([0.8, 0.6, 0.2]),
+        fuzz: 1.0,
+    };
+
+    let world: Vec<Box<dyn Hittable>> = vec![
+        Box::new(Sphere::new(
+            Vec3([0.0, -100.5, -1.0]),
+            100.0,
+            Box::new(material_ground),
+        )),
+        Box::new(Sphere::new(
+            Vec3([0.0, 0.0, -1.2]),
+            0.5,
+            Box::new(material_center),
+        )),
+        Box::new(Sphere::new(
+            Vec3([-1.0, 0.0, -1.0]),
+            0.5,
+            Box::new(material_left),
+        )),
+        Box::new(Sphere::new(
+            Vec3([-1.0, 0.0, -1.0]),
+            0.4,
+            Box::new(material_bubble),
+        )),
+        Box::new(Sphere::new(
+            Vec3([1.0, 0.0, -1.0]),
+            0.5,
+            Box::new(material_right),
+        )),
+    ];
+
+    let camera = Camera::new(
+        16.0 / 9.0,
+        400,
+        100,
+        50,
+        90.0,
+        Vec3([-2.0, 2.0, 1.0]),
+        Vec3([0.0, 0.0, -1.0]),
+        Vec3([0.0, 1.0, 0.0]),
+        10.0,
+        3.4,
+    );
+
+    camera.render(&world)
+}
+
+fn redblue() -> RgbImage {
+    let r = (PI / 4.0).cos();
+    let material_left = Lambertian {
+        texture: Box::new(SolidColor::new(Vec3::z(1.0))),
+    };
+
+    let material_right = Lambertian {
+        texture: Box::new(SolidColor::new(Vec3::x(1.0))),
+    };
+
+    let world: Vec<Box<dyn Hittable>> = vec![
+        Box::new(Sphere::new(
+            Vec3([-r, 0.0, -1.0]),
+            r,
+            Box::new(material_left),
+        )),
+        Box::new(Sphere::new(
+            Vec3([r, 0.0, -1.0]),
+            r,
+            Box::new(material_right),
+        )),
+    ];
+
+    let camera = Camera::new(
+        16.0 / 9.0,
+        400,
+        100,
+        50,
+        90.0,
+        Vec3([0.0, 0.0, 1.0]),
+        Vec3([0.0, 0.0, 0.0]),
+        Vec3([0.0, 1.0, 0.0]),
+        0.0,
+        10.0,
+    );
+
+    camera.render(&world)
+}
+
+fn bouncing_final() -> RgbImage {
     let ground_material = Lambertian {
         texture: Box::new(Checker::new(
             0.32,
@@ -176,7 +233,6 @@ fn main() {
         0.6,
         10.0,
     );
-    let image = camera.render(&world);
 
-    image.save("temp.png").unwrap();
+    camera.render(&world)
 }

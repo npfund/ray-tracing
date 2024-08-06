@@ -1,5 +1,6 @@
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
+use crate::texture::Texture;
 use crate::vec3::Vec3;
 use rand::Rng;
 
@@ -10,7 +11,7 @@ pub trait Material: Sync {
 }
 
 pub struct Lambertian {
-    pub albedo: Vec3,
+    pub texture: Box<dyn Texture>,
 }
 
 impl Material for Lambertian {
@@ -28,7 +29,7 @@ impl Material for Lambertian {
             time: ray.time,
         };
 
-        Some((scattered, self.albedo))
+        Some((scattered, self.texture.value(hit.u, hit.v, hit.point)))
     }
 }
 

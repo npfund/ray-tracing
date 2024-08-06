@@ -2,6 +2,7 @@ use crate::bvh::Node;
 use crate::camera::Camera;
 use crate::hittable::{Hittable, Sphere};
 use crate::material::{Dielectric, Lambertian, Material, Metal};
+use crate::texture::{Checker, SolidColor};
 use crate::vec3::Vec3;
 use rand::Rng;
 
@@ -12,6 +13,7 @@ mod hittable;
 mod interval;
 mod material;
 mod ray;
+mod texture;
 mod vec3;
 
 fn main() {
@@ -83,7 +85,11 @@ fn main() {
     // ];
 
     let ground_material = Lambertian {
-        albedo: Vec3::scalar(0.5),
+        texture: Box::new(Checker::new(
+            0.32,
+            Vec3([0.2, 0.3, 0.1]),
+            Vec3([0.9, 0.9, 0.9]),
+        )),
     };
 
     let mut world: Vec<Box<dyn Hittable>> = vec![Box::new(Sphere::new(
@@ -105,7 +111,9 @@ fn main() {
             if (center - Vec3([4.0, 0.2, 0.0])).length() > 0.9 {
                 let material: Box<dyn Material> = if mat < 0.9 {
                     Box::new(Lambertian {
-                        albedo: Vec3::random() * Vec3::random(),
+                        texture: Box::new(SolidColor {
+                            albedo: Vec3::random() * Vec3::random(),
+                        }),
                     })
                 } else if mat < 0.95 {
                     Box::new(Metal {
@@ -134,7 +142,9 @@ fn main() {
     )));
 
     let material_2 = Lambertian {
-        albedo: Vec3([0.4, 0.2, 0.1]),
+        texture: Box::new(SolidColor {
+            albedo: Vec3([0.4, 0.2, 0.1]),
+        }),
     };
     world.push(Box::new(Sphere::new(
         Vec3([-4.0, 1.0, 0.0]),

@@ -10,6 +10,8 @@ pub struct HitRecord<'m> {
     pub t: f64,
     pub front_face: bool,
     pub material: &'m dyn Material,
+    pub u: f64,
+    pub v: f64,
 }
 
 pub trait Hittable: Sync {
@@ -132,6 +134,8 @@ impl Hittable for Sphere {
             t: root,
             front_face,
             material: &*self.material,
+            u: 0.0,
+            v: 0.0,
         })
     }
 

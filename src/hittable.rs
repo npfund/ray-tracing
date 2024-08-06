@@ -57,15 +57,15 @@ pub enum Center {
     InMotion(Vec3, Vec3),
 }
 
-pub struct Sphere {
+pub struct Sphere<M> {
     center: Center,
     radius: f64,
-    material: Box<dyn Material>,
+    material: M,
     bounds: Aabb,
 }
 
-impl Sphere {
-    pub fn new(center: Vec3, radius: f64, material: Box<dyn Material>) -> Sphere {
+impl<M> Sphere<M> {
+    pub fn new(center: Vec3, radius: f64, material: M) -> Sphere<M> {
         let rvec = Vec3::scalar(radius);
         Sphere {
             center: Center::Stationary(center),
@@ -75,7 +75,7 @@ impl Sphere {
         }
     }
 
-    pub fn moving(start: Vec3, end: Vec3, radius: f64, material: Box<dyn Material>) -> Sphere {
+    pub fn moving(start: Vec3, end: Vec3, radius: f64, material: M) -> Sphere<M> {
         let rvec = Vec3::scalar(radius);
         let box1 = Aabb::from_points(start - rvec, start + rvec);
         let box2 = Aabb::from_points(end - rvec, end + rvec);
@@ -96,7 +96,10 @@ impl Sphere {
     }
 }
 
-impl Hittable for Sphere {
+impl<M> Hittable for Sphere<M>
+where
+    M: Material,
+{
     fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let center = self.center(ray.time);
         let oc = center - ray.origin;
@@ -133,7 +136,7 @@ impl Hittable for Sphere {
             normal,
             t: root,
             front_face,
-            material: &*self.material,
+            material: &self.material,
             u: 0.0,
             v: 0.0,
         })

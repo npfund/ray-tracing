@@ -20,6 +20,8 @@ pub struct Camera {
 }
 
 impl Camera {
+    //todo builder?
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         aspect_ratio: f64,
         image_width: u32,
@@ -73,7 +75,7 @@ impl Camera {
         }
     }
 
-    pub fn render(&self, world: &[Box<dyn Hittable>]) -> RgbImage {
+    pub fn render<H: Hittable + ?Sized>(&self, world: &H) -> RgbImage {
         let mut image = RgbImage::new(self.image_width, self.image_height);
         image.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
             let mut color = Vec3::scalar(0.0);

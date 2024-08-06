@@ -10,11 +10,14 @@ pub trait Material: Sync {
     }
 }
 
-pub struct Lambertian {
-    pub texture: Box<dyn Texture>,
+pub struct Lambertian<T> {
+    pub texture: T,
 }
 
-impl Material for Lambertian {
+impl<T> Material for Lambertian<T>
+where
+    T: Texture,
+{
     fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vec3)> {
         let potential_direction = hit.normal + Vec3::random_unit_vector();
         let direction = if potential_direction.near_zero() {

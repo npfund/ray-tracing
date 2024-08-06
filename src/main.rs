@@ -1,7 +1,7 @@
 use crate::bvh::Node;
 use crate::camera::Camera;
 use crate::hittable::{Hittable, Sphere};
-use crate::material::{Dielectric, Lambertian, Material, Metal};
+use crate::material::{Dielectric, Lambertian, Metal};
 use crate::texture::{Checker, SolidColor};
 use crate::vec3::Vec3;
 use clap::Parser;
@@ -41,10 +41,10 @@ fn main() {
 
 fn triplet() -> RgbImage {
     let material_ground = Lambertian {
-        texture: Box::new(SolidColor::new(Vec3([0.8, 0.8, 0.0]))),
+        texture: SolidColor::new(Vec3([0.8, 0.8, 0.0])),
     };
     let material_center = Lambertian {
-        texture: Box::new(SolidColor::new(Vec3([0.1, 0.2, 0.5]))),
+        texture: SolidColor::new(Vec3([0.1, 0.2, 0.5])),
     };
     let material_left = Dielectric {
         refraction_index: 1.5,
@@ -61,29 +61,15 @@ fn triplet() -> RgbImage {
         Box::new(Sphere::new(
             Vec3([0.0, -100.5, -1.0]),
             100.0,
-            Box::new(material_ground),
+            material_ground,
         )),
-        Box::new(Sphere::new(
-            Vec3([0.0, 0.0, -1.2]),
-            0.5,
-            Box::new(material_center),
-        )),
-        Box::new(Sphere::new(
-            Vec3([-1.0, 0.0, -1.0]),
-            0.5,
-            Box::new(material_left),
-        )),
-        Box::new(Sphere::new(
-            Vec3([-1.0, 0.0, -1.0]),
-            0.4,
-            Box::new(material_bubble),
-        )),
-        Box::new(Sphere::new(
-            Vec3([1.0, 0.0, -1.0]),
-            0.5,
-            Box::new(material_right),
-        )),
+        Box::new(Sphere::new(Vec3([0.0, 0.0, -1.2]), 0.5, material_center)),
+        Box::new(Sphere::new(Vec3([-1.0, 0.0, -1.0]), 0.5, material_left)),
+        Box::new(Sphere::new(Vec3([-1.0, 0.0, -1.0]), 0.4, material_bubble)),
+        Box::new(Sphere::new(Vec3([1.0, 0.0, -1.0]), 0.5, material_right)),
     ];
+
+    let world = Node::from_list(world);
 
     let camera = Camera::new(
         16.0 / 9.0,
@@ -104,25 +90,19 @@ fn triplet() -> RgbImage {
 fn redblue() -> RgbImage {
     let r = (PI / 4.0).cos();
     let material_left = Lambertian {
-        texture: Box::new(SolidColor::new(Vec3::z(1.0))),
+        texture: SolidColor::new(Vec3::z(1.0)),
     };
 
     let material_right = Lambertian {
-        texture: Box::new(SolidColor::new(Vec3::x(1.0))),
+        texture: SolidColor::new(Vec3::x(1.0)),
     };
 
     let world: Vec<Box<dyn Hittable>> = vec![
-        Box::new(Sphere::new(
-            Vec3([-r, 0.0, -1.0]),
-            r,
-            Box::new(material_left),
-        )),
-        Box::new(Sphere::new(
-            Vec3([r, 0.0, -1.0]),
-            r,
-            Box::new(material_right),
-        )),
+        Box::new(Sphere::new(Vec3([-r, 0.0, -1.0]), r, material_left)),
+        Box::new(Sphere::new(Vec3([r, 0.0, -1.0]), r, material_right)),
     ];
+
+    let world = Node::from_list(world);
 
     let camera = Camera::new(
         16.0 / 9.0,
@@ -142,17 +122,17 @@ fn redblue() -> RgbImage {
 
 fn bouncing_final() -> RgbImage {
     let ground_material = Lambertian {
-        texture: Box::new(Checker::new(
+        texture: Checker::new(
             0.32,
-            Vec3([0.2, 0.3, 0.1]),
-            Vec3([0.9, 0.9, 0.9]),
-        )),
+            SolidColor::new(Vec3([0.2, 0.3, 0.1])),
+            SolidColor::new(Vec3([0.9, 0.9, 0.9])),
+        ),
     };
 
     let mut world: Vec<Box<dyn Hittable>> = vec![Box::new(Sphere::new(
         Vec3([0.0, -1000.0, 0.0]),
         1000.0,
-        Box::new(ground_material),
+        ground_material,
     ))];
 
     let mut rand = rand::thread_rng();
@@ -166,25 +146,24 @@ fn bouncing_final() -> RgbImage {
             ]);
 
             if (center - Vec3([4.0, 0.2, 0.0])).length() > 0.9 {
-                let material: Box<dyn Material> = if mat < 0.9 {
-                    Box::new(Lambertian {
-                        texture: Box::new(SolidColor {
-                            albedo: Vec3::random() * Vec3::random(),
-                        }),
-                    })
+                if mat < 0.9 {
+                    let material = Lambertian {
+                        texture: SolidColor::new(Vec3::random() * Vec3::random()),
+                    };
+                    let end = center + Vec3([0.0, rand.gen(), 0.0]);
+                    world.push(Box::new(Sphere::moving(center, end, 0.2, material)));
                 } else if mat < 0.95 {
-                    Box::new(Metal {
+                    let material = Metal {
                         albedo: Vec3::random_within(0.5, 1.0),
                         fuzz: rand.gen::<f64>(),
-                    })
+                    };
+                    world.push(Box::new(Sphere::new(center, 0.2, material)));
                 } else {
-                    Box::new(Dielectric {
+                    let material = Dielectric {
                         refraction_index: 1.5,
-                    })
-                };
-
-                let end = center + Vec3([0.0, rand.gen(), 0.0]);
-                world.push(Box::new(Sphere::moving(center, end, 0.2, material)));
+                    };
+                    world.push(Box::new(Sphere::new(center, 0.2, material)));
+                }
             }
         }
     }
@@ -195,18 +174,16 @@ fn bouncing_final() -> RgbImage {
     world.push(Box::new(Sphere::new(
         Vec3([0.0, 1.0, 0.0]),
         1.0,
-        Box::new(material_1),
+        material_1,
     )));
 
     let material_2 = Lambertian {
-        texture: Box::new(SolidColor {
-            albedo: Vec3([0.4, 0.2, 0.1]),
-        }),
+        texture: SolidColor::new(Vec3([0.4, 0.2, 0.1])),
     };
     world.push(Box::new(Sphere::new(
         Vec3([-4.0, 1.0, 0.0]),
         1.0,
-        Box::new(material_2),
+        material_2,
     )));
 
     let material_3 = Metal {
@@ -216,10 +193,10 @@ fn bouncing_final() -> RgbImage {
     world.push(Box::new(Sphere::new(
         Vec3([4.0, 1.0, 0.0]),
         1.0,
-        Box::new(material_3),
+        material_3,
     )));
 
-    let world: Vec<Box<dyn Hittable>> = vec![Box::new(Node::from_list(world))];
+    let world = Node::from_list(world);
 
     let camera = Camera::new(
         16.0 / 9.0,

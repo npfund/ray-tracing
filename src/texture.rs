@@ -5,7 +5,7 @@ pub trait Texture: Sync {
 }
 
 pub struct SolidColor {
-    pub albedo: Vec3,
+    albedo: Vec3,
 }
 
 impl SolidColor {
@@ -20,26 +20,27 @@ impl Texture for SolidColor {
     }
 }
 
-pub struct Checker {
+pub struct Checker<E, O> {
     pub inv_scale: f64,
-    pub even: Box<dyn Texture>,
-    pub odd: Box<dyn Texture>,
+    pub even: E,
+    pub odd: O,
 }
 
-impl Checker {
-    pub fn new(scale: f64, even: Vec3, odd: Vec3) -> Checker {
-        let even = SolidColor { albedo: even };
-        let odd = SolidColor { albedo: odd };
-
+impl<E, O> Checker<E, O> {
+    pub fn new(scale: f64, even: E, odd: O) -> Checker<E, O> {
         Checker {
             inv_scale: 1.0 / scale,
-            even: Box::new(even),
-            odd: Box::new(odd),
+            even,
+            odd,
         }
     }
 }
 
-impl Texture for Checker {
+impl<E, O> Texture for Checker<E, O>
+where
+    E: Texture,
+    O: Texture,
+{
     fn value(&self, u: f64, v: f64, point: Vec3) -> Vec3 {
         let x = (self.inv_scale * point[0]).floor();
         let y = (self.inv_scale * point[1]).floor();

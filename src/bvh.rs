@@ -66,20 +66,14 @@ impl Hittable for Node {
 
         if let Some(hit_left) = self.left.hit(ray, ray_t) {
             if let Some(right) = &self.right {
-                if let Some(hit_right) = right.hit(ray, Interval::new(ray_t.min, hit_left.t)) {
-                    Some(hit_right)
-                } else {
-                    Some(hit_left)
-                }
+                right
+                    .hit(ray, Interval::new(ray_t.min, hit_left.t))
+                    .or(Some(hit_left))
             } else {
                 Some(hit_left)
             }
         } else if let Some(right) = &self.right {
-            if let Some(hit_right) = right.hit(ray, ray_t) {
-                Some(hit_right)
-            } else {
-                None
-            }
+            right.hit(ray, ray_t)
         } else {
             None
         }

@@ -13,7 +13,7 @@ impl Ray {
         self.origin + self.direction * t
     }
 
-    pub fn color(&self, depth: u32, world: &[Box<dyn Hittable>]) -> Vec3 {
+    pub fn color<H: Hittable + ?Sized>(&self, depth: u32, world: &H) -> Vec3 {
         if depth == 0 {
             return Vec3::scalar(0.0);
         }

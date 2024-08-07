@@ -1,9 +1,9 @@
-use std::f64::consts::PI;
 use crate::aabb::Aabb;
 use crate::interval::Interval;
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
+use std::f64::consts::PI;
 
 pub struct HitRecord<'m> {
     pub point: Vec3,

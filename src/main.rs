@@ -2,7 +2,7 @@ use crate::bvh::Node;
 use crate::camera::Camera;
 use crate::hittable::{Hittable, Sphere};
 use crate::material::{Dielectric, Lambertian, Metal};
-use crate::texture::{Checker, SolidColor};
+use crate::texture::{Checker, Image, SolidColor};
 use crate::vec3::Vec3;
 use clap::Parser;
 use image::RgbImage;
@@ -34,6 +34,7 @@ fn main() {
         "bouncing" => bouncing_final(),
         "redblue" => redblue(),
         "checkered" => checkered(),
+        "earth" => earth(),
         _ => panic!("unknown scene"),
     };
 
@@ -225,7 +226,11 @@ fn checkered() -> RgbImage {
     };
 
     let world: Vec<Box<dyn Hittable>> = vec![
-        Box::new(Sphere::new(Vec3([0.0, -10.0, 0.0]), 10.0, ground_material.clone())),
+        Box::new(Sphere::new(
+            Vec3([0.0, -10.0, 0.0]),
+            10.0,
+            ground_material.clone(),
+        )),
         Box::new(Sphere::new(Vec3([0.0, 10.0, 0.0]), 10.0, ground_material)),
     ];
 
@@ -245,4 +250,27 @@ fn checkered() -> RgbImage {
     );
 
     camera.render(&world)
+}
+
+fn earth() -> RgbImage {
+    let earth_texture = image::open("earthmap.jpg").unwrap().into_rgb8();
+    let earth_surface = Lambertian {
+        texture: Image::new(earth_texture),
+    };
+    let globe = Sphere::new(Vec3::scalar(0.0), 2.0, earth_surface);
+
+    let camera = Camera::new(
+        16.0 / 9.0,
+        400,
+        100,
+        50,
+        20.0,
+        Vec3([0.0, 0.0, 12.0]),
+        Vec3([0.0, 0.0, 0.0]),
+        Vec3([0.0, 1.0, 0.0]),
+        0.0,
+        10.0,
+    );
+
+    camera.render(&globe)
 }

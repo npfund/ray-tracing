@@ -1,6 +1,6 @@
 use crate::bvh::Node;
 use crate::camera::Camera;
-use crate::hittable::{Hittable, Sphere};
+use crate::hittable::{Hittable, Quad, Sphere};
 use crate::material::{Dielectric, Lambertian, Metal};
 use crate::texture::{Checker, Image, Noise, SolidColor};
 use crate::vec3::Vec3;
@@ -36,6 +36,7 @@ fn main() {
         "checkered" => checkered(),
         "earth" => earth(),
         "perlin" => perlin(),
+        "quads" => quads(),
         _ => panic!("unknown scene"),
     };
 
@@ -299,6 +300,68 @@ fn perlin() -> RgbImage {
         50,
         20.0,
         Vec3([13.0, 2.0, 3.0]),
+        Vec3([0.0, 0.0, 0.0]),
+        Vec3([0.0, 1.0, 0.0]),
+        0.0,
+        10.0,
+    );
+
+    camera.render(&world)
+}
+
+fn quads() -> RgbImage {
+    let world: Vec<Box<dyn Hittable>> = vec![
+        Box::new(Quad::new(
+            Vec3([-3.0, -2.0, 5.0]),
+            Vec3([0.0, 0.0, -4.0]),
+            Vec3([0.0, 4.0, 0.0]),
+            Lambertian {
+                texture: SolidColor::new(Vec3([1.0, 0.2, 0.2])),
+            },
+        )),
+        Box::new(Quad::new(
+            Vec3([-2.0, -2.0, 0.0]),
+            Vec3([4.0, 0.0, 0.0]),
+            Vec3([0.0, 4.0, 0.0]),
+            Lambertian {
+                texture: SolidColor::new(Vec3([0.2, 1.0, 0.2])),
+            },
+        )),
+        Box::new(Quad::new(
+            Vec3([3.0, -2.0, 1.0]),
+            Vec3([0.0, 0.0, 4.0]),
+            Vec3([0.0, 4.0, 0.0]),
+            Lambertian {
+                texture: SolidColor::new(Vec3([0.2, 0.2, 1.0])),
+            },
+        )),
+        Box::new(Quad::new(
+            Vec3([-2.0, 3.0, 1.0]),
+            Vec3([4.0, 0.0, 0.0]),
+            Vec3([0.0, 0.0, 4.0]),
+            Lambertian {
+                texture: SolidColor::new(Vec3([1.0, 0.5, 0.0])),
+            },
+        )),
+        Box::new(Quad::new(
+            Vec3([-2.0, -3.0, 5.0]),
+            Vec3([4.0, 0.0, 0.0]),
+            Vec3([0.0, 0.0, -4.0]),
+            Lambertian {
+                texture: SolidColor::new(Vec3([0.2, 0.8, 0.8])),
+            },
+        )),
+    ];
+
+    let world = Node::from_list(world);
+
+    let camera = Camera::new(
+        16.0 / 9.0,
+        400,
+        100,
+        50,
+        80.0,
+        Vec3([0.0, 0.0, 9.0]),
         Vec3([0.0, 0.0, 0.0]),
         Vec3([0.0, 1.0, 0.0]),
         0.0,

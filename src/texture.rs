@@ -1,6 +1,6 @@
 use crate::vec3::Vec3;
 use image::RgbImage;
-use rand::{Rng};
+use rand::Rng;
 
 pub trait Texture: Sync {
     fn value(&self, u: f64, v: f64, point: Vec3) -> Vec3;

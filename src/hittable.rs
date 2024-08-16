@@ -156,3 +156,94 @@ where
         self.bounds.clone()
     }
 }
+
+pub struct Quad<M> {
+    q: Vec3,
+    u: Vec3,
+    v: Vec3,
+    w: Vec3,
+    material: M,
+    bounds: Aabb,
+    normal: Vec3,
+    d: f64,
+}
+
+impl<M> Quad<M> {
+    pub fn new(q: Vec3, u: Vec3, v: Vec3, material: M) -> Quad<M> {
+        let diagonal_1 = Aabb::from_points(q, q + u + v);
+        let diagonal_2 = Aabb::from_points(q + u, q + v);
+        let bounds = Aabb::from_bounds(diagonal_1, diagonal_2);
+
+        let n = u.cross(v);
+        let normal = n.unit();
+        let d = normal.dot(q);
+
+        let w = n / n.dot(n);
+
+        Quad {
+            q,
+            u,
+            v,
+            w,
+            material,
+            bounds,
+            normal,
+            d,
+        }
+    }
+
+    pub fn is_interior(a: f64, b: f64) -> bool {
+        let unit_interval = Interval::new(0.0, 1.0);
+
+        unit_interval.contains(a) && unit_interval.contains(b)
+    }
+}
+
+impl<M> Hittable for Quad<M>
+where
+    M: Material,
+{
+    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
+        let denom = self.normal.dot(ray.direction);
+
+        if denom.abs() < 1e-8 {
+            return None;
+        }
+
+        let t = (self.d - self.normal.dot(ray.origin)) / denom;
+        if !ray_t.contains(t) {
+            return None;
+        }
+
+        let intersection = ray.at(t);
+        let planar_hit = intersection - self.q;
+        let alpha = self.w.dot(planar_hit.cross(self.v));
+        let beta = self.w.dot(self.u.cross(planar_hit));
+        let (u, v) = if Self::is_interior(alpha, beta) {
+            (alpha, beta)
+        } else {
+            return None;
+        };
+
+        let front_face = ray.direction.dot(self.normal) < 0.0;
+        let normal = if front_face {
+            self.normal
+        } else {
+            -self.normal
+        };
+
+        Some(HitRecord {
+            point: intersection,
+            normal,
+            t,
+            front_face: false,
+            material: &self.material,
+            u,
+            v,
+        })
+    }
+
+    fn bounding_box(&self) -> Aabb {
+        self.bounds.clone()
+    }
+}

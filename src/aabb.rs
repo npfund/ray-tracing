@@ -11,7 +11,7 @@ pub struct Aabb {
 
 impl Aabb {
     pub fn new(x: Interval, y: Interval, z: Interval) -> Aabb {
-        Aabb { x, y, z }
+        Aabb { x, y, z }.pad_to_minimums()
     }
 
     pub fn from_bounds(a: Aabb, b: Aabb) -> Aabb {
@@ -20,6 +20,25 @@ impl Aabb {
             y: Interval::merge(a.y, b.y),
             z: Interval::merge(a.z, b.z),
         }
+        .pad_to_minimums()
+    }
+
+    fn pad_to_minimums(mut self) -> Aabb {
+        let delta = 0.0001;
+
+        if self.x.size() < delta {
+            self.x = self.x.expand(delta)
+        }
+
+        if self.y.size() < delta {
+            self.y = self.y.expand(delta)
+        }
+
+        if self.z.size() < delta {
+            self.z = self.z.expand(delta)
+        }
+
+        self
     }
 
     pub fn from_points(a: Vec3, b: Vec3) -> Aabb {

@@ -3,6 +3,7 @@ use crate::interval::Interval;
 use crate::material::Material;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
+use rand::Rng;
 use std::f64::consts::PI;
 
 pub struct HitRecord<'m> {
@@ -423,5 +424,79 @@ impl Hittable for RotateY {
 
     fn bounding_box(&self) -> Aabb {
         self.bounds.clone()
+    }
+}
+
+pub struct ConstantMedium<M> {
+    boundary: Box<dyn Hittable>,
+    neg_inv_density: f64,
+    phase_function: M,
+}
+
+impl<M> ConstantMedium<M> {
+    pub fn new(boundary: Box<dyn Hittable>, density: f64, material: M) -> ConstantMedium<M> {
+        ConstantMedium {
+            boundary,
+            neg_inv_density: -1.0 / density,
+            phase_function: material,
+        }
+    }
+}
+
+impl<M> Hittable for ConstantMedium<M>
+where
+    M: Material,
+{
+    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
+        if let Some(mut hit) = self.boundary.hit(ray, Interval::new(f64::MIN, f64::MAX)) {
+            if let Some(mut hit2) = self
+                .boundary
+                .hit(ray, Interval::new(hit.t + 0.0001, f64::MAX))
+            {
+                let mut rand = rand::thread_rng();
+
+                if hit.t < ray_t.min {
+                    hit.t = ray_t.min;
+                }
+
+                if hit2.t > ray_t.max {
+                    hit2.t = ray_t.max;
+                }
+
+                if hit.t >= hit2.t {
+                    return None;
+                }
+
+                if hit.t < 0.0 {
+                    hit.t = 0.0
+                }
+
+                let ray_length = ray.direction.length();
+                let distance_inside_boundary = (hit2.t - hit.t) * ray_length;
+                let hit_distance = self.neg_inv_density * rand.gen::<f64>().ln();
+
+                if hit_distance > distance_inside_boundary {
+                    return None;
+                }
+
+                Some(HitRecord {
+                    point: ray.at(hit.t),
+                    normal: Vec3([1.0, 0.0, 0.0]),
+                    t: hit.t + hit_distance / ray_length,
+                    front_face: true,
+                    material: &self.phase_function,
+                    u: 0.0,
+                    v: 0.0,
+                })
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn bounding_box(&self) -> Aabb {
+        self.boundary.bounding_box().clone()
     }
 }

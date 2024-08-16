@@ -1,7 +1,7 @@
 use crate::bvh::Node;
 use crate::camera::Camera;
-use crate::hittable::{Hittable, Quad, RotateY, Sphere, Translate};
-use crate::material::{Dielectric, DiffuseLight, Lambertian, Metal};
+use crate::hittable::{ConstantMedium, Hittable, Quad, RotateY, Sphere, Translate};
+use crate::material::{Dielectric, DiffuseLight, Isotropic, Lambertian, Metal};
 use crate::texture::{Checker, Image, Noise, SolidColor};
 use crate::vec3::Vec3;
 use clap::Parser;
@@ -39,6 +39,7 @@ fn main() {
         "quads" => quads(),
         "simple-light" => simple_light(),
         "cornell" => cornell_box(),
+        "cornell-smoke" => cornell_smoke(),
         _ => panic!("unknown scene"),
     };
 
@@ -491,6 +492,106 @@ fn cornell_box() -> RgbImage {
                 -18.0,
             )),
             Vec3([130.0, 0.0, 65.0]),
+        )),
+    ];
+
+    let world = Node::from_list(world);
+
+    let camera = Camera::new(
+        1.0,
+        600,
+        200,
+        50,
+        40.0,
+        Vec3([278.0, 278.0, -800.0]),
+        Vec3([278.0, 278.0, 0.0]),
+        Vec3([0.0, 1.0, 0.0]),
+        0.0,
+        10.0,
+        Vec3([0.0, 0.0, 0.0]),
+    );
+
+    camera.render(&world)
+}
+
+fn cornell_smoke() -> RgbImage {
+    let green = Lambertian {
+        texture: SolidColor::new(Vec3([0.12, 0.45, 0.15])),
+    };
+    let red = Lambertian {
+        texture: SolidColor::new(Vec3([0.65, 0.05, 0.05])),
+    };
+    let light = DiffuseLight::new(SolidColor::new(Vec3([7.0, 7.0, 7.0])));
+    let white = Lambertian {
+        texture: SolidColor::new(Vec3([0.73, 0.73, 0.73])),
+    };
+
+    let world: Vec<Box<dyn Hittable>> = vec![
+        Box::new(Quad::new(
+            Vec3([555.0, 0.0, 0.0]),
+            Vec3([0.0, 555.0, 0.0]),
+            Vec3([0.0, 0.0, 555.0]),
+            green,
+        )),
+        Box::new(Quad::new(
+            Vec3([0.0, 0.0, 0.0]),
+            Vec3([0.0, 555.0, 0.0]),
+            Vec3([0.0, 0.0, 555.0]),
+            red,
+        )),
+        Box::new(Quad::new(
+            Vec3([113.0, 554.0, 127.0]),
+            Vec3([330.0, 0.0, 0.0]),
+            Vec3([0.0, 0.0, 305.0]),
+            light,
+        )),
+        Box::new(Quad::new(
+            Vec3([0.0, 555.0, 0.0]),
+            Vec3([555.0, 0.0, 0.0]),
+            Vec3([0.0, 0.0, 555.0]),
+            white.clone(),
+        )),
+        Box::new(Quad::new(
+            Vec3([0.0, 0.0, 0.0]),
+            Vec3([555.0, 0.0, 0.0]),
+            Vec3([0.0, 0.0, 555.0]),
+            white.clone(),
+        )),
+        Box::new(Quad::new(
+            Vec3([0.0, 0.0, 555.0]),
+            Vec3([555.0, 0.0, 0.0]),
+            Vec3([0.0, 555.0, 0.0]),
+            white.clone(),
+        )),
+        Box::new(ConstantMedium::new(
+            Box::new(Translate::new(
+                Box::new(RotateY::new(
+                    Box::new(hittable::make_box(
+                        Vec3([0.0, 0.0, 0.0]),
+                        Vec3([165.0, 330.0, 165.0]),
+                        white.clone(),
+                    )),
+                    15.0,
+                )),
+                Vec3([265.0, 0.0, 295.0]),
+            )),
+            0.01,
+            Isotropic::new(SolidColor::new(Vec3::scalar(0.0))),
+        )),
+        Box::new(ConstantMedium::new(
+            Box::new(Translate::new(
+                Box::new(RotateY::new(
+                    Box::new(hittable::make_box(
+                        Vec3([0.0, 0.0, 0.0]),
+                        Vec3([165.0, 165.0, 165.0]),
+                        white,
+                    )),
+                    -18.0,
+                )),
+                Vec3([130.0, 0.0, 65.0]),
+            )),
+            0.01,
+            Isotropic::new(SolidColor::new(Vec3::scalar(1.0))),
         )),
     ];
 

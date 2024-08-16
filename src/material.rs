@@ -130,3 +130,29 @@ where
         self.texture.value(u, v, point)
     }
 }
+
+pub struct Isotropic<T> {
+    texture: T,
+}
+
+impl<T> Isotropic<T> {
+    pub fn new(texture: T) -> Isotropic<T> {
+        Isotropic { texture }
+    }
+}
+
+impl<T> Material for Isotropic<T>
+where
+    T: Texture,
+{
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vec3)> {
+        Some((
+            Ray {
+                origin: hit.point,
+                direction: Vec3::random_unit_vector(),
+                time: ray.time,
+            },
+            self.texture.value(hit.u, hit.v, hit.point),
+        ))
+    }
+}

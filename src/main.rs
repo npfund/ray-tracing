@@ -1,6 +1,6 @@
 use crate::bvh::Node;
 use crate::camera::Camera;
-use crate::hittable::{Hittable, Quad, Sphere};
+use crate::hittable::{Hittable, Quad, RotateY, Sphere, Translate};
 use crate::material::{Dielectric, DiffuseLight, Lambertian, Metal};
 use crate::texture::{Checker, Image, Noise, SolidColor};
 use crate::vec3::Vec3;
@@ -468,7 +468,29 @@ fn cornell_box() -> RgbImage {
             Vec3([0.0, 0.0, 555.0]),
             Vec3([555.0, 0.0, 0.0]),
             Vec3([0.0, 555.0, 0.0]),
-            white,
+            white.clone(),
+        )),
+        Box::new(Translate::new(
+            Box::new(RotateY::new(
+                Box::new(hittable::make_box(
+                    Vec3([0.0, 0.0, 0.0]),
+                    Vec3([165.0, 330.0, 165.0]),
+                    white.clone(),
+                )),
+                15.0,
+            )),
+            Vec3([265.0, 0.0, 295.0]),
+        )),
+        Box::new(Translate::new(
+            Box::new(RotateY::new(
+                Box::new(hittable::make_box(
+                    Vec3([0.0, 0.0, 0.0]),
+                    Vec3([165.0, 165.0, 165.0]),
+                    white,
+                )),
+                -18.0,
+            )),
+            Vec3([130.0, 0.0, 65.0]),
         )),
     ];
 

@@ -21,7 +21,7 @@ pub trait Hittable: Sync {
     fn bounding_box(&self) -> Aabb;
 }
 
-impl Hittable for &[Box<dyn Hittable>] {
+impl Hittable for Vec<Box<dyn Hittable>> {
     fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let mut hit = None;
         let mut closest_so_far = ray_t.max;
@@ -240,6 +240,184 @@ where
             material: &self.material,
             u,
             v,
+        })
+    }
+
+    fn bounding_box(&self) -> Aabb {
+        self.bounds.clone()
+    }
+}
+
+pub fn make_box(
+    a: Vec3,
+    b: Vec3,
+    material: impl Material + Clone + 'static,
+) -> Vec<Box<dyn Hittable>> {
+    let min = Vec3([a[0].min(b[0]), a[1].min(b[1]), a[2].min(b[2])]);
+    let max = Vec3([a[0].max(b[0]), a[1].max(b[1]), a[2].max(b[2])]);
+
+    let dx = Vec3([max[0] - min[0], 0.0, 0.0]);
+    let dy = Vec3([0.0, max[1] - min[1], 0.0]);
+    let dz = Vec3([0.0, 0.0, max[2] - min[2]]);
+
+    vec![
+        Box::new(Quad::new(
+            Vec3([min[0], min[1], max[2]]),
+            dx,
+            dy,
+            material.clone(),
+        )),
+        Box::new(Quad::new(
+            Vec3([max[0], min[1], max[2]]),
+            -dz,
+            dy,
+            material.clone(),
+        )),
+        Box::new(Quad::new(
+            Vec3([max[0], min[1], min[2]]),
+            -dx,
+            dy,
+            material.clone(),
+        )),
+        Box::new(Quad::new(
+            Vec3([min[0], min[1], min[2]]),
+            dz,
+            dy,
+            material.clone(),
+        )),
+        Box::new(Quad::new(
+            Vec3([min[0], max[1], max[2]]),
+            dx,
+            -dz,
+            material.clone(),
+        )),
+        Box::new(Quad::new(
+            Vec3([min[0], min[1], min[2]]),
+            dx,
+            dz,
+            material.clone(),
+        )),
+    ]
+}
+
+pub struct Translate {
+    object: Box<dyn Hittable>,
+    offset: Vec3,
+    bounds: Aabb,
+}
+
+impl Translate {
+    pub fn new(object: Box<dyn Hittable>, offset: Vec3) -> Translate {
+        let bounds = object.bounding_box() + offset;
+        Translate {
+            object,
+            offset,
+            bounds,
+        }
+    }
+}
+
+impl Hittable for Translate {
+    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
+        let offset_r = Ray {
+            origin: ray.origin - self.offset,
+            direction: ray.direction,
+            time: ray.time,
+        };
+
+        self.object.hit(&offset_r, ray_t).map(|mut hit| {
+            hit.point += self.offset;
+            hit
+        })
+    }
+
+    fn bounding_box(&self) -> Aabb {
+        self.bounds.clone()
+    }
+}
+
+pub struct RotateY {
+    object: Box<dyn Hittable>,
+    sin_theta: f64,
+    cos_theta: f64,
+    bounds: Aabb,
+}
+
+impl RotateY {
+    pub fn new(object: Box<dyn Hittable>, angle: f64) -> RotateY {
+        let radians = angle.to_radians();
+        let sin_theta = radians.sin();
+        let cos_theta = radians.cos();
+
+        let original_bounds = object.bounding_box();
+
+        let mut min = Vec3::scalar(f64::MAX);
+        let mut max = Vec3::scalar(f64::MIN);
+
+        for i in 0..2 {
+            for j in 0..2 {
+                for k in 0..2 {
+                    let x =
+                        i as f64 * original_bounds.x.max + (1.0 - i as f64) * original_bounds.x.min;
+                    let y =
+                        j as f64 * original_bounds.y.max + (1.0 - j as f64) * original_bounds.y.min;
+                    let z =
+                        k as f64 * original_bounds.z.max + (1.0 - k as f64) * original_bounds.z.min;
+
+                    let newx = cos_theta * x + sin_theta * z;
+                    let newz = -sin_theta * x + cos_theta * z;
+
+                    let tester = Vec3([newx, y, newz]);
+
+                    for c in 0..3 {
+                        min.0[c] = min[c].min(tester[c]);
+                        max.0[c] = max[c].max(tester[c]);
+                    }
+                }
+            }
+        }
+
+        let bounds = Aabb::from_points(min, max);
+
+        RotateY {
+            object,
+            sin_theta,
+            cos_theta,
+            bounds,
+        }
+    }
+}
+
+impl Hittable for RotateY {
+    fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
+        let mut origin = ray.origin;
+        let mut direction = ray.direction;
+
+        origin.0[0] = self.cos_theta * ray.origin[0] - self.sin_theta * ray.origin[2];
+        origin.0[2] = self.sin_theta * ray.origin[0] + self.cos_theta * ray.origin[2];
+
+        direction.0[0] = self.cos_theta * ray.direction[0] - self.sin_theta * ray.direction[2];
+        direction.0[2] = self.sin_theta * ray.direction[0] + self.cos_theta * ray.direction[2];
+
+        let rotated = Ray {
+            origin,
+            direction,
+            time: ray.time,
+        };
+
+        self.object.hit(&rotated, ray_t).map(|mut hit| {
+            let mut p = hit.point;
+            p.0[0] = self.cos_theta * hit.point[0] + self.sin_theta * hit.point[2];
+            p.0[2] = -self.sin_theta * hit.point[0] + self.cos_theta * hit.point[2];
+
+            let mut normal = hit.normal;
+            normal.0[0] = self.cos_theta * hit.normal[0] + self.sin_theta * hit.normal[2];
+            normal.0[0] = -self.sin_theta * hit.normal[0] + self.cos_theta * hit.normal[2];
+
+            hit.point = p;
+            hit.normal = normal;
+
+            hit
         })
     }
 

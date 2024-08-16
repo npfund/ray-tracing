@@ -17,6 +17,7 @@ pub struct Camera {
     defocus_angle: f64,
     defocus_disk_u: Vec3,
     defocus_disk_v: Vec3,
+    background: Vec3,
 }
 
 impl Camera {
@@ -33,6 +34,7 @@ impl Camera {
         vup: Vec3,
         defocus_angle: f64,
         focus_dist: f64,
+        background: Vec3,
     ) -> Self {
         let image_height = ((image_width as f64 / aspect_ratio) as u32).max(1);
 
@@ -72,6 +74,7 @@ impl Camera {
             defocus_angle,
             defocus_disk_u,
             defocus_disk_v,
+            background,
         }
     }
 
@@ -80,7 +83,9 @@ impl Camera {
         image.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
             let mut color = Vec3::scalar(0.0);
             for _ in 0..self.samples_per_pixel {
-                let temp = self.get_ray(x, y).color(self.max_depth, world);
+                let temp = self
+                    .get_ray(x, y)
+                    .color(self.max_depth, world, self.background);
                 color += temp;
             }
 

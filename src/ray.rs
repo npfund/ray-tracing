@@ -13,20 +13,19 @@ impl Ray {
         self.origin + self.direction * t
     }
 
-    pub fn color<H: Hittable + ?Sized>(&self, depth: u32, world: &H) -> Vec3 {
+    pub fn color<H: Hittable + ?Sized>(&self, depth: u32, world: &H, background: Vec3) -> Vec3 {
         if depth == 0 {
             return Vec3::scalar(0.0);
         }
 
         if let Some(hit) = world.hit(self, Interval::new(0.001, f64::MAX)) {
+            let emission = hit.material.emitted(hit.u, hit.v, hit.point);
             if let Some((scattered, attenuation)) = hit.material.scatter(self, &hit) {
-                return attenuation * scattered.color(depth - 1, world);
+                return emission + attenuation * scattered.color(depth - 1, world, background);
             }
-            return Vec3::scalar(0.0);
+            return emission;
         }
 
-        let unit_direction = self.direction.unit();
-        let a = 0.5 * (unit_direction[1] + 1.0);
-        (1.0 - a) * Vec3::scalar(1.0) + a * Vec3([0.5, 0.7, 1.0])
+        background
     }
 }

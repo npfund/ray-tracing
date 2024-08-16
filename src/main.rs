@@ -1,7 +1,7 @@
 use crate::bvh::Node;
 use crate::camera::Camera;
 use crate::hittable::{Hittable, Quad, Sphere};
-use crate::material::{Dielectric, Lambertian, Metal};
+use crate::material::{Dielectric, DiffuseLight, Lambertian, Metal};
 use crate::texture::{Checker, Image, Noise, SolidColor};
 use crate::vec3::Vec3;
 use clap::Parser;
@@ -37,6 +37,7 @@ fn main() {
         "earth" => earth(),
         "perlin" => perlin(),
         "quads" => quads(),
+        "simple-light" => simple_light(),
         _ => panic!("unknown scene"),
     };
 
@@ -86,6 +87,7 @@ fn triplet() -> RgbImage {
         Vec3([0.0, 1.0, 0.0]),
         10.0,
         3.4,
+        Vec3([0.7, 0.8, 1.0]),
     );
 
     camera.render(&world)
@@ -119,6 +121,7 @@ fn redblue() -> RgbImage {
         Vec3([0.0, 1.0, 0.0]),
         0.0,
         10.0,
+        Vec3([0.7, 0.8, 1.0]),
     );
 
     camera.render(&world)
@@ -213,6 +216,7 @@ fn bouncing_final() -> RgbImage {
         Vec3([0.0, 1.0, 0.0]),
         0.6,
         10.0,
+        Vec3([0.7, 0.8, 1.0]),
     );
 
     camera.render(&world)
@@ -249,6 +253,7 @@ fn checkered() -> RgbImage {
         Vec3([0.0, 1.0, 0.0]),
         0.0,
         10.0,
+        Vec3([0.7, 0.8, 1.0]),
     );
 
     camera.render(&world)
@@ -272,6 +277,7 @@ fn earth() -> RgbImage {
         Vec3([0.0, 1.0, 0.0]),
         0.0,
         10.0,
+        Vec3([0.7, 0.8, 1.0]),
     );
 
     camera.render(&globe)
@@ -304,6 +310,7 @@ fn perlin() -> RgbImage {
         Vec3([0.0, 1.0, 0.0]),
         0.0,
         10.0,
+        Vec3([0.7, 0.8, 1.0]),
     );
 
     camera.render(&world)
@@ -366,6 +373,48 @@ fn quads() -> RgbImage {
         Vec3([0.0, 1.0, 0.0]),
         0.0,
         10.0,
+        Vec3([0.7, 0.8, 1.0]),
+    );
+
+    camera.render(&world)
+}
+
+fn simple_light() -> RgbImage {
+    let ground_material = Lambertian {
+        texture: Noise::<256>::new(4.0),
+    };
+
+    let light = DiffuseLight::new(SolidColor::new(Vec3([4.0, 4.0, 4.0])));
+    let world: Vec<Box<dyn Hittable>> = vec![
+        Box::new(Sphere::new(
+            Vec3([0.0, -1000.0, 0.0]),
+            1000.0,
+            ground_material.clone(),
+        )),
+        Box::new(Sphere::new(Vec3([0.0, 2.0, 0.0]), 2.0, ground_material)),
+        Box::new(Sphere::new(Vec3([0.0, 7.0, 0.0]), 2.0, light.clone())),
+        Box::new(Quad::new(
+            Vec3([3.0, 1.0, -2.0]),
+            Vec3([2.0, 0.0, 0.0]),
+            Vec3([0.0, 2.0, 0.0]),
+            light,
+        )),
+    ];
+
+    let world = Node::from_list(world);
+
+    let camera = Camera::new(
+        16.0 / 9.0,
+        400,
+        100,
+        50,
+        20.0,
+        Vec3([26.0, 3.0, 6.0]),
+        Vec3([0.0, 2.0, 0.0]),
+        Vec3([0.0, 1.0, 0.0]),
+        0.0,
+        10.0,
+        Vec3([0.0, 0.0, 0.0]),
     );
 
     camera.render(&world)

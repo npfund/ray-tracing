@@ -8,6 +8,10 @@ pub trait Material: Sync {
     fn scatter(&self, _ray: &Ray, _hit: &HitRecord) -> Option<(Ray, Vec3)> {
         None
     }
+
+    fn emitted(&self, _u: f64, _v: f64, _point: Vec3) -> Vec3 {
+        Vec3::scalar(0.0)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -101,5 +105,28 @@ impl Material for Dielectric {
         };
 
         Some((scattered, attenuation))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct DiffuseLight<T> {
+    texture: T,
+}
+
+impl<T> DiffuseLight<T>
+where
+    T: Texture,
+{
+    pub fn new(texture: T) -> DiffuseLight<T> {
+        DiffuseLight { texture }
+    }
+}
+
+impl<T> Material for DiffuseLight<T>
+where
+    T: Texture,
+{
+    fn emitted(&self, u: f64, v: f64, point: Vec3) -> Vec3 {
+        self.texture.value(u, v, point)
     }
 }

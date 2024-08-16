@@ -38,6 +38,7 @@ fn main() {
         "perlin" => perlin(),
         "quads" => quads(),
         "simple-light" => simple_light(),
+        "cornell" => cornell_box(),
         _ => panic!("unknown scene"),
     };
 
@@ -411,6 +412,76 @@ fn simple_light() -> RgbImage {
         20.0,
         Vec3([26.0, 3.0, 6.0]),
         Vec3([0.0, 2.0, 0.0]),
+        Vec3([0.0, 1.0, 0.0]),
+        0.0,
+        10.0,
+        Vec3([0.0, 0.0, 0.0]),
+    );
+
+    camera.render(&world)
+}
+
+fn cornell_box() -> RgbImage {
+    let green = Lambertian {
+        texture: SolidColor::new(Vec3([0.12, 0.45, 0.15])),
+    };
+    let red = Lambertian {
+        texture: SolidColor::new(Vec3([0.65, 0.05, 0.05])),
+    };
+    let light = DiffuseLight::new(SolidColor::new(Vec3([15.0, 15.0, 15.0])));
+    let white = Lambertian {
+        texture: SolidColor::new(Vec3([0.73, 0.73, 0.73])),
+    };
+
+    let world: Vec<Box<dyn Hittable>> = vec![
+        Box::new(Quad::new(
+            Vec3([555.0, 0.0, 0.0]),
+            Vec3([0.0, 555.0, 0.0]),
+            Vec3([0.0, 0.0, 555.0]),
+            green,
+        )),
+        Box::new(Quad::new(
+            Vec3([0.0, 0.0, 0.0]),
+            Vec3([0.0, 555.0, 0.0]),
+            Vec3([0.0, 0.0, 555.0]),
+            red,
+        )),
+        Box::new(Quad::new(
+            Vec3([343.0, 554.0, 332.0]),
+            Vec3([-130.0, 0.0, 0.0]),
+            Vec3([0.0, 0.0, -105.0]),
+            light,
+        )),
+        Box::new(Quad::new(
+            Vec3([0.0, 0.0, 0.0]),
+            Vec3([555.0, 0.0, 0.0]),
+            Vec3([0.0, 0.0, 555.0]),
+            white.clone(),
+        )),
+        Box::new(Quad::new(
+            Vec3([555.0, 555.0, 555.0]),
+            Vec3([-555.0, 0.0, 0.0]),
+            Vec3([0.0, 0.0, -555.0]),
+            white.clone(),
+        )),
+        Box::new(Quad::new(
+            Vec3([0.0, 0.0, 555.0]),
+            Vec3([555.0, 0.0, 0.0]),
+            Vec3([0.0, 555.0, 0.0]),
+            white,
+        )),
+    ];
+
+    let world = Node::from_list(world);
+
+    let camera = Camera::new(
+        1.0,
+        600,
+        200,
+        50,
+        40.0,
+        Vec3([278.0, 278.0, -800.0]),
+        Vec3([278.0, 278.0, 0.0]),
         Vec3([0.0, 1.0, 0.0]),
         0.0,
         10.0,

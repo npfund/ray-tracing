@@ -147,9 +147,9 @@ impl<const N: usize> Perlin<N> {
         for (di, ci) in c.iter_mut().enumerate() {
             for (dj, cj) in ci.iter_mut().enumerate() {
                 for (dk, ck) in cj.iter_mut().enumerate() {
-                    *ck = self.randvec[(self.perm_x[((i + di as i32) & 255) as usize]
-                        ^ self.perm_y[((j + dj as i32) & 255) as usize]
-                        ^ self.perm_z[((k + dk as i32) & 255) as usize])
+                    *ck = self.randvec[(self.perm_x[((i + di as i32) & (N - 1) as i32) as usize]
+                        ^ self.perm_y[((j + dj as i32) & (N - 1) as i32) as usize]
+                        ^ self.perm_z[((k + dk as i32) & (N - 1) as i32) as usize])
                         as usize]
                 }
             }

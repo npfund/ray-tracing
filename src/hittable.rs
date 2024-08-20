@@ -301,14 +301,17 @@ pub fn make_box(
     ]
 }
 
-pub struct Translate {
-    object: Box<dyn Hittable>,
+pub struct Translate<H> {
+    object: H,
     offset: Vec3,
     bounds: Aabb,
 }
 
-impl Translate {
-    pub fn new(object: Box<dyn Hittable>, offset: Vec3) -> Translate {
+impl<H> Translate<H>
+where
+    H: Hittable,
+{
+    pub fn new(object: H, offset: Vec3) -> Translate<H> {
         let bounds = object.bounding_box() + offset;
         Translate {
             object,
@@ -318,7 +321,10 @@ impl Translate {
     }
 }
 
-impl Hittable for Translate {
+impl<H> Hittable for Translate<H>
+where
+    H: Hittable,
+{
     fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let offset_r = Ray {
             origin: ray.origin - self.offset,
@@ -337,15 +343,18 @@ impl Hittable for Translate {
     }
 }
 
-pub struct RotateY {
-    object: Box<dyn Hittable>,
+pub struct RotateY<H> {
+    object: H,
     sin_theta: f64,
     cos_theta: f64,
     bounds: Aabb,
 }
 
-impl RotateY {
-    pub fn new(object: Box<dyn Hittable>, angle: f64) -> RotateY {
+impl<H> RotateY<H>
+where
+    H: Hittable,
+{
+    pub fn new(object: H, angle: f64) -> RotateY<H> {
         let radians = angle.to_radians();
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
@@ -389,7 +398,10 @@ impl RotateY {
     }
 }
 
-impl Hittable for RotateY {
+impl<H> Hittable for RotateY<H>
+where
+    H: Hittable,
+{
     fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let mut origin = ray.origin;
         let mut direction = ray.direction;
@@ -427,14 +439,14 @@ impl Hittable for RotateY {
     }
 }
 
-pub struct ConstantMedium<M> {
-    boundary: Box<dyn Hittable>,
+pub struct ConstantMedium<H, M> {
+    boundary: H,
     neg_inv_density: f64,
     phase_function: M,
 }
 
-impl<M> ConstantMedium<M> {
-    pub fn new(boundary: Box<dyn Hittable>, density: f64, material: M) -> ConstantMedium<M> {
+impl<H, M> ConstantMedium<H, M> {
+    pub fn new(boundary: H, density: f64, material: M) -> ConstantMedium<H, M> {
         ConstantMedium {
             boundary,
             neg_inv_density: -1.0 / density,
@@ -443,8 +455,9 @@ impl<M> ConstantMedium<M> {
     }
 }
 
-impl<M> Hittable for ConstantMedium<M>
+impl<H, M> Hittable for ConstantMedium<H, M>
 where
+    H: Hittable,
     M: Material,
 {
     fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {

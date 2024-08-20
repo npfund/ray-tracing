@@ -1,10 +1,10 @@
-use std::sync::atomic::{AtomicU32, Ordering};
 use crate::hittable::Hittable;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use image::RgbImage;
 use rand::Rng;
 use rayon::prelude::*;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 pub struct Camera {
     image_width: u32,

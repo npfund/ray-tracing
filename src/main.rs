@@ -474,25 +474,21 @@ fn cornell_box() -> RgbImage {
             white.clone(),
         )),
         Box::new(Translate::new(
-            Box::new(RotateY::new(
-                Box::new(hittable::make_box(
+            RotateY::new(
+                make_box(
                     Vec3([0.0, 0.0, 0.0]),
                     Vec3([165.0, 330.0, 165.0]),
                     white.clone(),
-                )),
+                ),
                 15.0,
-            )),
+            ),
             Vec3([265.0, 0.0, 295.0]),
         )),
         Box::new(Translate::new(
-            Box::new(RotateY::new(
-                Box::new(hittable::make_box(
-                    Vec3([0.0, 0.0, 0.0]),
-                    Vec3([165.0, 165.0, 165.0]),
-                    white,
-                )),
+            RotateY::new(
+                make_box(Vec3([0.0, 0.0, 0.0]), Vec3([165.0, 165.0, 165.0]), white),
                 -18.0,
-            )),
+            ),
             Vec3([130.0, 0.0, 65.0]),
         )),
     ];
@@ -566,32 +562,28 @@ fn cornell_smoke() -> RgbImage {
             white.clone(),
         )),
         Box::new(ConstantMedium::new(
-            Box::new(Translate::new(
-                Box::new(RotateY::new(
-                    Box::new(hittable::make_box(
+            Translate::new(
+                RotateY::new(
+                    make_box(
                         Vec3([0.0, 0.0, 0.0]),
                         Vec3([165.0, 330.0, 165.0]),
                         white.clone(),
-                    )),
+                    ),
                     15.0,
-                )),
+                ),
                 Vec3([265.0, 0.0, 295.0]),
-            )),
+            ),
             0.01,
             Isotropic::new(SolidColor::new(Vec3::scalar(0.0))),
         )),
         Box::new(ConstantMedium::new(
-            Box::new(Translate::new(
-                Box::new(RotateY::new(
-                    Box::new(hittable::make_box(
-                        Vec3([0.0, 0.0, 0.0]),
-                        Vec3([165.0, 165.0, 165.0]),
-                        white,
-                    )),
+            Translate::new(
+                RotateY::new(
+                    make_box(Vec3([0.0, 0.0, 0.0]), Vec3([165.0, 165.0, 165.0]), white),
                     -18.0,
-                )),
+                ),
                 Vec3([130.0, 0.0, 65.0]),
-            )),
+            ),
             0.01,
             Isotropic::new(SolidColor::new(Vec3::scalar(1.0))),
         )),
@@ -675,24 +667,24 @@ fn fancy(image_width: u32, samples: u32, max_depth: u32) -> RgbImage {
             },
         )),
         Box::new(ConstantMedium::new(
-            Box::new(Sphere::new(
+            Sphere::new(
                 Vec3([360.0, 150.0, 145.0]),
                 70.0,
                 Dielectric {
                     refraction_index: 1.5,
                 },
-            )),
+            ),
             0.2,
             Isotropic::new(SolidColor::new(Vec3([0.2, 0.4, 0.9]))),
         )),
         Box::new(ConstantMedium::new(
-            Box::new(Sphere::new(
+            Sphere::new(
                 Vec3([0.0, 0.0, 0.0]),
                 5000.0,
                 Dielectric {
                     refraction_index: 1.5,
                 },
-            )),
+            ),
             0.0001,
             Isotropic::new(SolidColor::new(Vec3([1.0, 1.0, 1.0]))),
         )),
@@ -735,7 +727,7 @@ fn fancy(image_width: u32, samples: u32, max_depth: u32) -> RgbImage {
     }
 
     world.push(Box::new(Translate::new(
-        Box::new(RotateY::new(Box::new(Node::from_list(boxes2)), 15.0)),
+        RotateY::new(Node::from_list(boxes2), 15.0),
         Vec3([-100.0, 270.0, 395.0]),
     )));
 

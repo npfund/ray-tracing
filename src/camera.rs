@@ -2,9 +2,9 @@ use crate::hittable::Hittable;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use image::RgbImage;
+use indicatif::{ProgressBar, ProgressStyle};
 use rand::Rng;
 use rayon::prelude::*;
-use std::sync::atomic::{AtomicU32, Ordering};
 
 pub struct Camera {
     image_width: u32,
@@ -81,9 +81,11 @@ impl Camera {
 
     pub fn render<H: Hittable + ?Sized>(&self, world: &H) -> RgbImage {
         let mut image = RgbImage::new(self.image_width, self.image_height);
-        let pixels = AtomicU32::new(0);
         let total = self.image_width * self.image_height;
 
+        let progress_bar = ProgressBar::new(total as u64).with_style(
+            ProgressStyle::with_template("{wide_bar} {pos}/{len} {elapsed_precise}").unwrap(),
+        );
         image.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
             let mut color = Vec3::scalar(0.0);
             for _ in 0..self.samples_per_pixel {
@@ -95,12 +97,10 @@ impl Camera {
 
             *pixel = (color / self.samples_per_pixel as f64).into();
 
-            let count = pixels.fetch_add(1, Ordering::Relaxed);
-            if count % 1000 == 0 {
-                let progress = (count as f64 / total as f64) * 100.0;
-                println!("{progress}");
-            };
+            progress_bar.inc(1);
         });
+
+        progress_bar.finish();
 
         image
     }

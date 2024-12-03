@@ -1,13 +1,18 @@
+use std::f64::consts::PI;
+use std::sync::LazyLock;
+
+use clap::Parser;
+use image::RgbImage;
+use rand::Rng;
+use nalgebra::{vector, SVector};
+
 use crate::bvh::Node;
 use crate::camera::Camera;
 use crate::hittable::{make_box, ConstantMedium, Hittable, Quad, RotateY, Sphere, Translate};
 use crate::material::{Dielectric, DiffuseLight, Isotropic, Lambertian, Metal};
 use crate::texture::{Checker, Image, Noise, SolidColor};
-use crate::vec3::Vec3;
-use clap::Parser;
-use image::RgbImage;
-use rand::Rng;
-use std::f64::consts::PI;
+
+static NEG_ONE_ONE_CLOSED: LazyLock<rand::distributions::Uniform<f64>> = LazyLock::new(|| rand::distributions::Uniform::new(-1.0, 1.0));
 
 mod aabb;
 mod bvh;
@@ -50,10 +55,10 @@ fn main() {
 
 fn triplet() -> RgbImage {
     let material_ground = Lambertian {
-        texture: SolidColor::new(Vec3([0.8, 0.8, 0.0])),
+        texture: SolidColor::new(vector![0.8, 0.8, 0.0]),
     };
     let material_center = Lambertian {
-        texture: SolidColor::new(Vec3([0.1, 0.2, 0.5])),
+        texture: SolidColor::new(vector![0.1, 0.2, 0.5]),
     };
     let material_left = Dielectric {
         refraction_index: 1.5,
@@ -62,20 +67,20 @@ fn triplet() -> RgbImage {
         refraction_index: 1.0 / 1.5,
     };
     let material_right = Metal {
-        albedo: Vec3([0.8, 0.6, 0.2]),
+        albedo: vector![0.8, 0.6, 0.2],
         fuzz: 1.0,
     };
 
     let world: Vec<Box<dyn Hittable>> = vec![
         Box::new(Sphere::new(
-            Vec3([0.0, -100.5, -1.0]),
+            vector![0.0, -100.5, -1.0],
             100.0,
             material_ground,
         )),
-        Box::new(Sphere::new(Vec3([0.0, 0.0, -1.2]), 0.5, material_center)),
-        Box::new(Sphere::new(Vec3([-1.0, 0.0, -1.0]), 0.5, material_left)),
-        Box::new(Sphere::new(Vec3([-1.0, 0.0, -1.0]), 0.4, material_bubble)),
-        Box::new(Sphere::new(Vec3([1.0, 0.0, -1.0]), 0.5, material_right)),
+        Box::new(Sphere::new(vector![0.0, 0.0, -1.2], 0.5, material_center)),
+        Box::new(Sphere::new(vector![-1.0, 0.0, -1.0], 0.5, material_left)),
+        Box::new(Sphere::new(vector![-1.0, 0.0, -1.0], 0.4, material_bubble)),
+        Box::new(Sphere::new(vector![1.0, 0.0, -1.0], 0.5, material_right)),
     ];
 
     let world = Node::from_list(world);
@@ -86,12 +91,12 @@ fn triplet() -> RgbImage {
         100,
         50,
         90.0,
-        Vec3([-2.0, 2.0, 1.0]),
-        Vec3([0.0, 0.0, -1.0]),
-        Vec3([0.0, 1.0, 0.0]),
+        vector![-2.0, 2.0, 1.0],
+        vector![0.0, 0.0, -1.0],
+        vector![0.0, 1.0, 0.0],
         10.0,
         3.4,
-        Vec3([0.7, 0.8, 1.0]),
+        vector![0.7, 0.8, 1.0],
     );
 
     camera.render(&world)
@@ -100,16 +105,16 @@ fn triplet() -> RgbImage {
 fn redblue() -> RgbImage {
     let r = (PI / 4.0).cos();
     let material_left = Lambertian {
-        texture: SolidColor::new(Vec3::z(1.0)),
+        texture: SolidColor::new(vector![0.0, 0.0, 1.0]),
     };
 
     let material_right = Lambertian {
-        texture: SolidColor::new(Vec3::x(1.0)),
+        texture: SolidColor::new(vector![1.0, 0.0, 0.0]),
     };
 
     let world: Vec<Box<dyn Hittable>> = vec![
-        Box::new(Sphere::new(Vec3([-r, 0.0, -1.0]), r, material_left)),
-        Box::new(Sphere::new(Vec3([r, 0.0, -1.0]), r, material_right)),
+        Box::new(Sphere::new(vector![-r, 0.0, -1.0], r, material_left)),
+        Box::new(Sphere::new(vector![r, 0.0, -1.0], r, material_right)),
     ];
 
     let world = Node::from_list(world);
@@ -120,12 +125,12 @@ fn redblue() -> RgbImage {
         100,
         50,
         90.0,
-        Vec3([0.0, 0.0, 1.0]),
-        Vec3([0.0, 0.0, 0.0]),
-        Vec3([0.0, 1.0, 0.0]),
+        vector![0.0, 0.0, 1.0],
+        vector![0.0, 0.0, 0.0],
+        vector![0.0, 1.0, 0.0],
         0.0,
         10.0,
-        Vec3([0.7, 0.8, 1.0]),
+        vector![0.7, 0.8, 1.0],
     );
 
     camera.render(&world)
@@ -135,13 +140,13 @@ fn bouncing_final() -> RgbImage {
     let ground_material = Lambertian {
         texture: Checker::new(
             0.32,
-            SolidColor::new(Vec3([0.2, 0.3, 0.1])),
-            SolidColor::new(Vec3([0.9, 0.9, 0.9])),
+            SolidColor::new(vector![0.2, 0.3, 0.1]),
+            SolidColor::new(vector![0.9, 0.9, 0.9]),
         ),
     };
 
     let mut world: Vec<Box<dyn Hittable>> = vec![Box::new(Sphere::new(
-        Vec3([0.0, -1000.0, 0.0]),
+        vector![0.0, -1000.0, 0.0],
         1000.0,
         ground_material,
     ))];
@@ -150,22 +155,22 @@ fn bouncing_final() -> RgbImage {
     for a in -11..11 {
         for b in -11..11 {
             let mat = rand.gen::<f64>();
-            let center = Vec3([
+            let center = vector![
                 a as f64 + 0.9 * rand.gen::<f64>(),
                 0.2,
                 b as f64 + 0.9 * rand.gen::<f64>(),
-            ]);
+            ];
 
-            if (center - Vec3([4.0, 0.2, 0.0])).length() > 0.9 {
+            if (center - vector![4.0, 0.2, 0.0]).magnitude() > 0.9 {
                 if mat < 0.9 {
                     let material = Lambertian {
-                        texture: SolidColor::new(Vec3::random() * Vec3::random()),
+                        texture: SolidColor::new(vec3::mul(vec3::random(), vec3::random())),
                     };
-                    let end = center + Vec3([0.0, rand.gen(), 0.0]);
+                    let end = center + vector![0.0, rand.gen(), 0.0];
                     world.push(Box::new(Sphere::moving(center, end, 0.2, material)));
                 } else if mat < 0.95 {
                     let material = Metal {
-                        albedo: Vec3::random_within(0.5, 1.0),
+                        albedo: vec3::random_within(0.5, 1.0),
                         fuzz: rand.gen::<f64>(),
                     };
                     world.push(Box::new(Sphere::new(center, 0.2, material)));
@@ -183,26 +188,26 @@ fn bouncing_final() -> RgbImage {
         refraction_index: 1.5,
     };
     world.push(Box::new(Sphere::new(
-        Vec3([0.0, 1.0, 0.0]),
+        vector![0.0, 1.0, 0.0],
         1.0,
         material_1,
     )));
 
     let material_2 = Lambertian {
-        texture: SolidColor::new(Vec3([0.4, 0.2, 0.1])),
+        texture: SolidColor::new(vector![0.4, 0.2, 0.1]),
     };
     world.push(Box::new(Sphere::new(
-        Vec3([-4.0, 1.0, 0.0]),
+        vector![-4.0, 1.0, 0.0],
         1.0,
         material_2,
     )));
 
     let material_3 = Metal {
-        albedo: Vec3([0.7, 0.6, 0.5]),
+        albedo: vector![0.7, 0.6, 0.5],
         fuzz: 0.0,
     };
     world.push(Box::new(Sphere::new(
-        Vec3([4.0, 1.0, 0.0]),
+        vector![4.0, 1.0, 0.0],
         1.0,
         material_3,
     )));
@@ -215,12 +220,12 @@ fn bouncing_final() -> RgbImage {
         100,
         50,
         20.0,
-        Vec3([13.0, 2.0, 3.0]),
-        Vec3([0.0, 0.0, 0.0]),
-        Vec3([0.0, 1.0, 0.0]),
+        vector![13.0, 2.0, 3.0],
+        vector![0.0, 0.0, 0.0],
+        vector![0.0, 1.0, 0.0],
         0.6,
         10.0,
-        Vec3([0.7, 0.8, 1.0]),
+        vector![0.7, 0.8, 1.0],
     );
 
     camera.render(&world)
@@ -230,18 +235,18 @@ fn checkered() -> RgbImage {
     let ground_material = Lambertian {
         texture: Checker::new(
             0.32,
-            SolidColor::new(Vec3([0.2, 0.3, 0.1])),
-            SolidColor::new(Vec3([0.9, 0.9, 0.9])),
+            SolidColor::new(vector![0.2, 0.3, 0.1]),
+            SolidColor::new(vector![0.9, 0.9, 0.9]),
         ),
     };
 
     let world: Vec<Box<dyn Hittable>> = vec![
         Box::new(Sphere::new(
-            Vec3([0.0, -10.0, 0.0]),
+            vector![0.0, -10.0, 0.0],
             10.0,
             ground_material.clone(),
         )),
-        Box::new(Sphere::new(Vec3([0.0, 10.0, 0.0]), 10.0, ground_material)),
+        Box::new(Sphere::new(vector![0.0, 10.0, 0.0], 10.0, ground_material)),
     ];
 
     let world = Node::from_list(world);
@@ -252,12 +257,12 @@ fn checkered() -> RgbImage {
         100,
         50,
         20.0,
-        Vec3([13.0, 2.0, 3.0]),
-        Vec3([0.0, 0.0, 0.0]),
-        Vec3([0.0, 1.0, 0.0]),
+        vector![13.0, 2.0, 3.0],
+        vector![0.0, 0.0, 0.0],
+        vector![0.0, 1.0, 0.0],
         0.0,
         10.0,
-        Vec3([0.7, 0.8, 1.0]),
+        vector![0.7, 0.8, 1.0],
     );
 
     camera.render(&world)
@@ -268,7 +273,7 @@ fn earth() -> RgbImage {
     let earth_surface = Lambertian {
         texture: Image::new(earth_texture),
     };
-    let globe = Sphere::new(Vec3::scalar(0.0), 2.0, earth_surface);
+    let globe = Sphere::new(SVector::<f64, 3>::zeros(), 2.0, earth_surface);
 
     let camera = Camera::new(
         16.0 / 9.0,
@@ -276,12 +281,12 @@ fn earth() -> RgbImage {
         100,
         50,
         20.0,
-        Vec3([0.0, 0.0, 12.0]),
-        Vec3([0.0, 0.0, 0.0]),
-        Vec3([0.0, 1.0, 0.0]),
+        vector![0.0, 0.0, 12.0],
+        vector![0.0, 0.0, 0.0],
+        vector![0.0, 1.0, 0.0],
         0.0,
         10.0,
-        Vec3([0.7, 0.8, 1.0]),
+        vector![0.7, 0.8, 1.0],
     );
 
     camera.render(&globe)
@@ -294,11 +299,11 @@ fn perlin() -> RgbImage {
 
     let world: Vec<Box<dyn Hittable>> = vec![
         Box::new(Sphere::new(
-            Vec3([0.0, -1000.0, 0.0]),
+            vector![0.0, -1000.0, 0.0],
             1000.0,
             ground_material.clone(),
         )),
-        Box::new(Sphere::new(Vec3([0.0, 2.0, 0.0]), 2.0, ground_material)),
+        Box::new(Sphere::new(vector![0.0, 2.0, 0.0], 2.0, ground_material)),
     ];
 
     let world = Node::from_list(world);
@@ -309,12 +314,12 @@ fn perlin() -> RgbImage {
         100,
         50,
         20.0,
-        Vec3([13.0, 2.0, 3.0]),
-        Vec3([0.0, 0.0, 0.0]),
-        Vec3([0.0, 1.0, 0.0]),
+        vector![13.0, 2.0, 3.0],
+        vector![0.0, 0.0, 0.0],
+        vector![0.0, 1.0, 0.0],
         0.0,
         10.0,
-        Vec3([0.7, 0.8, 1.0]),
+        vector![0.7, 0.8, 1.0],
     );
 
     camera.render(&world)
@@ -323,43 +328,43 @@ fn perlin() -> RgbImage {
 fn quads() -> RgbImage {
     let world: Vec<Box<dyn Hittable>> = vec![
         Box::new(Quad::new(
-            Vec3([-3.0, -2.0, 5.0]),
-            Vec3([0.0, 0.0, -4.0]),
-            Vec3([0.0, 4.0, 0.0]),
+            vector![-3.0, -2.0, 5.0],
+            vector![0.0, 0.0, -4.0],
+            vector![0.0, 4.0, 0.0],
             Lambertian {
-                texture: SolidColor::new(Vec3([1.0, 0.2, 0.2])),
+                texture: SolidColor::new(vector![1.0, 0.2, 0.2]),
             },
         )),
         Box::new(Quad::new(
-            Vec3([-2.0, -2.0, 0.0]),
-            Vec3([4.0, 0.0, 0.0]),
-            Vec3([0.0, 4.0, 0.0]),
+            vector![-2.0, -2.0, 0.0],
+            vector![4.0, 0.0, 0.0],
+            vector![0.0, 4.0, 0.0],
             Lambertian {
-                texture: SolidColor::new(Vec3([0.2, 1.0, 0.2])),
+                texture: SolidColor::new(vector![0.2, 1.0, 0.2]),
             },
         )),
         Box::new(Quad::new(
-            Vec3([3.0, -2.0, 1.0]),
-            Vec3([0.0, 0.0, 4.0]),
-            Vec3([0.0, 4.0, 0.0]),
+            vector![3.0, -2.0, 1.0],
+            vector![0.0, 0.0, 4.0],
+            vector![0.0, 4.0, 0.0],
             Lambertian {
-                texture: SolidColor::new(Vec3([0.2, 0.2, 1.0])),
+                texture: SolidColor::new(vector![0.2, 0.2, 1.0]),
             },
         )),
         Box::new(Quad::new(
-            Vec3([-2.0, 3.0, 1.0]),
-            Vec3([4.0, 0.0, 0.0]),
-            Vec3([0.0, 0.0, 4.0]),
+            vector![-2.0, 3.0, 1.0],
+            vector![4.0, 0.0, 0.0],
+            vector![0.0, 0.0, 4.0],
             Lambertian {
-                texture: SolidColor::new(Vec3([1.0, 0.5, 0.0])),
+                texture: SolidColor::new(vector![1.0, 0.5, 0.0]),
             },
         )),
         Box::new(Quad::new(
-            Vec3([-2.0, -3.0, 5.0]),
-            Vec3([4.0, 0.0, 0.0]),
-            Vec3([0.0, 0.0, -4.0]),
+            vector![-2.0, -3.0, 5.0],
+            vector![4.0, 0.0, 0.0],
+            vector![0.0, 0.0, -4.0],
             Lambertian {
-                texture: SolidColor::new(Vec3([0.2, 0.8, 0.8])),
+                texture: SolidColor::new(vector![0.2, 0.8, 0.8]),
             },
         )),
     ];
@@ -372,12 +377,12 @@ fn quads() -> RgbImage {
         100,
         50,
         80.0,
-        Vec3([0.0, 0.0, 9.0]),
-        Vec3([0.0, 0.0, 0.0]),
-        Vec3([0.0, 1.0, 0.0]),
+        vector![0.0, 0.0, 9.0],
+        vector![0.0, 0.0, 0.0],
+        vector![0.0, 1.0, 0.0],
         0.0,
         10.0,
-        Vec3([0.7, 0.8, 1.0]),
+        vector![0.7, 0.8, 1.0],
     );
 
     camera.render(&world)
@@ -388,19 +393,19 @@ fn simple_light() -> RgbImage {
         texture: Noise::<256>::new(4.0),
     };
 
-    let light = DiffuseLight::new(SolidColor::new(Vec3([4.0, 4.0, 4.0])));
+    let light = DiffuseLight::new(SolidColor::new(vector![4.0, 4.0, 4.0]));
     let world: Vec<Box<dyn Hittable>> = vec![
         Box::new(Sphere::new(
-            Vec3([0.0, -1000.0, 0.0]),
+            vector![0.0, -1000.0, 0.0],
             1000.0,
             ground_material.clone(),
         )),
-        Box::new(Sphere::new(Vec3([0.0, 2.0, 0.0]), 2.0, ground_material)),
-        Box::new(Sphere::new(Vec3([0.0, 7.0, 0.0]), 2.0, light.clone())),
+        Box::new(Sphere::new(vector![0.0, 2.0, 0.0], 2.0, ground_material)),
+        Box::new(Sphere::new(vector![0.0, 7.0, 0.0], 2.0, light.clone())),
         Box::new(Quad::new(
-            Vec3([3.0, 1.0, -2.0]),
-            Vec3([2.0, 0.0, 0.0]),
-            Vec3([0.0, 2.0, 0.0]),
+            vector![3.0, 1.0, -2.0],
+            vector![2.0, 0.0, 0.0],
+            vector![0.0, 2.0, 0.0],
             light,
         )),
     ];
@@ -413,12 +418,12 @@ fn simple_light() -> RgbImage {
         100,
         50,
         20.0,
-        Vec3([26.0, 3.0, 6.0]),
-        Vec3([0.0, 2.0, 0.0]),
-        Vec3([0.0, 1.0, 0.0]),
+        vector![26.0, 3.0, 6.0],
+        vector![0.0, 2.0, 0.0],
+        vector![0.0, 1.0, 0.0],
         0.0,
         10.0,
-        Vec3([0.0, 0.0, 0.0]),
+        vector![0.0, 0.0, 0.0],
     );
 
     camera.render(&world)
@@ -426,70 +431,70 @@ fn simple_light() -> RgbImage {
 
 fn cornell_box() -> RgbImage {
     let green = Lambertian {
-        texture: SolidColor::new(Vec3([0.12, 0.45, 0.15])),
+        texture: SolidColor::new(vector![0.12, 0.45, 0.15]),
     };
     let red = Lambertian {
-        texture: SolidColor::new(Vec3([0.65, 0.05, 0.05])),
+        texture: SolidColor::new(vector![0.65, 0.05, 0.05]),
     };
-    let light = DiffuseLight::new(SolidColor::new(Vec3([15.0, 15.0, 15.0])));
+    let light = DiffuseLight::new(SolidColor::new(vector![15.0, 15.0, 15.0]));
     let white = Lambertian {
-        texture: SolidColor::new(Vec3([0.73, 0.73, 0.73])),
+        texture: SolidColor::new(vector![0.73, 0.73, 0.73]),
     };
 
     let world: Vec<Box<dyn Hittable>> = vec![
         Box::new(Quad::new(
-            Vec3([555.0, 0.0, 0.0]),
-            Vec3([0.0, 555.0, 0.0]),
-            Vec3([0.0, 0.0, 555.0]),
+            vector![555.0, 0.0, 0.0],
+            vector![0.0, 555.0, 0.0],
+            vector![0.0, 0.0, 555.0],
             green,
         )),
         Box::new(Quad::new(
-            Vec3([0.0, 0.0, 0.0]),
-            Vec3([0.0, 555.0, 0.0]),
-            Vec3([0.0, 0.0, 555.0]),
+            vector![0.0, 0.0, 0.0],
+            vector![0.0, 555.0, 0.0],
+            vector![0.0, 0.0, 555.0],
             red,
         )),
         Box::new(Quad::new(
-            Vec3([343.0, 554.0, 332.0]),
-            Vec3([-130.0, 0.0, 0.0]),
-            Vec3([0.0, 0.0, -105.0]),
+            vector![343.0, 554.0, 332.0],
+            vector![-130.0, 0.0, 0.0],
+            vector![0.0, 0.0, -105.0],
             light,
         )),
         Box::new(Quad::new(
-            Vec3([0.0, 0.0, 0.0]),
-            Vec3([555.0, 0.0, 0.0]),
-            Vec3([0.0, 0.0, 555.0]),
+            vector![0.0, 0.0, 0.0],
+            vector![555.0, 0.0, 0.0],
+            vector![0.0, 0.0, 555.0],
             white.clone(),
         )),
         Box::new(Quad::new(
-            Vec3([555.0, 555.0, 555.0]),
-            Vec3([-555.0, 0.0, 0.0]),
-            Vec3([0.0, 0.0, -555.0]),
+            vector![555.0, 555.0, 555.0],
+            vector![-555.0, 0.0, 0.0],
+            vector![0.0, 0.0, -555.0],
             white.clone(),
         )),
         Box::new(Quad::new(
-            Vec3([0.0, 0.0, 555.0]),
-            Vec3([555.0, 0.0, 0.0]),
-            Vec3([0.0, 555.0, 0.0]),
+            vector![0.0, 0.0, 555.0],
+            vector![555.0, 0.0, 0.0],
+            vector![0.0, 555.0, 0.0],
             white.clone(),
         )),
         Box::new(Translate::new(
             RotateY::new(
                 make_box(
-                    Vec3([0.0, 0.0, 0.0]),
-                    Vec3([165.0, 330.0, 165.0]),
+                    vector![0.0, 0.0, 0.0],
+                    vector![165.0, 330.0, 165.0],
                     white.clone(),
                 ),
                 15.0,
             ),
-            Vec3([265.0, 0.0, 295.0]),
+            vector![265.0, 0.0, 295.0],
         )),
         Box::new(Translate::new(
             RotateY::new(
-                make_box(Vec3([0.0, 0.0, 0.0]), Vec3([165.0, 165.0, 165.0]), white),
+                make_box(vector![0.0, 0.0, 0.0], vector![165.0, 165.0, 165.0], white),
                 -18.0,
             ),
-            Vec3([130.0, 0.0, 65.0]),
+            vector![130.0, 0.0, 65.0],
         )),
     ];
 
@@ -501,12 +506,12 @@ fn cornell_box() -> RgbImage {
         200,
         50,
         40.0,
-        Vec3([278.0, 278.0, -800.0]),
-        Vec3([278.0, 278.0, 0.0]),
-        Vec3([0.0, 1.0, 0.0]),
+        vector![278.0, 278.0, -800.0],
+        vector![278.0, 278.0, 0.0],
+        vector![0.0, 1.0, 0.0],
         0.0,
         10.0,
-        Vec3([0.0, 0.0, 0.0]),
+        vector![0.0, 0.0, 0.0],
     );
 
     camera.render(&world)
@@ -514,78 +519,78 @@ fn cornell_box() -> RgbImage {
 
 fn cornell_smoke() -> RgbImage {
     let green = Lambertian {
-        texture: SolidColor::new(Vec3([0.12, 0.45, 0.15])),
+        texture: SolidColor::new(vector![0.12, 0.45, 0.15]),
     };
     let red = Lambertian {
-        texture: SolidColor::new(Vec3([0.65, 0.05, 0.05])),
+        texture: SolidColor::new(vector![0.65, 0.05, 0.05]),
     };
-    let light = DiffuseLight::new(SolidColor::new(Vec3([7.0, 7.0, 7.0])));
+    let light = DiffuseLight::new(SolidColor::new(vector![7.0, 7.0, 7.0]));
     let white = Lambertian {
-        texture: SolidColor::new(Vec3([0.73, 0.73, 0.73])),
+        texture: SolidColor::new(vector![0.73, 0.73, 0.73]),
     };
 
     let world: Vec<Box<dyn Hittable>> = vec![
         Box::new(Quad::new(
-            Vec3([555.0, 0.0, 0.0]),
-            Vec3([0.0, 555.0, 0.0]),
-            Vec3([0.0, 0.0, 555.0]),
+            vector![555.0, 0.0, 0.0],
+            vector![0.0, 555.0, 0.0],
+            vector![0.0, 0.0, 555.0],
             green,
         )),
         Box::new(Quad::new(
-            Vec3([0.0, 0.0, 0.0]),
-            Vec3([0.0, 555.0, 0.0]),
-            Vec3([0.0, 0.0, 555.0]),
+            vector![0.0, 0.0, 0.0],
+            vector![0.0, 555.0, 0.0],
+            vector![0.0, 0.0, 555.0],
             red,
         )),
         Box::new(Quad::new(
-            Vec3([113.0, 554.0, 127.0]),
-            Vec3([330.0, 0.0, 0.0]),
-            Vec3([0.0, 0.0, 305.0]),
+            vector![113.0, 554.0, 127.0],
+            vector![330.0, 0.0, 0.0],
+            vector![0.0, 0.0, 305.0],
             light,
         )),
         Box::new(Quad::new(
-            Vec3([0.0, 555.0, 0.0]),
-            Vec3([555.0, 0.0, 0.0]),
-            Vec3([0.0, 0.0, 555.0]),
+            vector![0.0, 555.0, 0.0],
+            vector![555.0, 0.0, 0.0],
+            vector![0.0, 0.0, 555.0],
             white.clone(),
         )),
         Box::new(Quad::new(
-            Vec3([0.0, 0.0, 0.0]),
-            Vec3([555.0, 0.0, 0.0]),
-            Vec3([0.0, 0.0, 555.0]),
+            vector![0.0, 0.0, 0.0],
+            vector![555.0, 0.0, 0.0],
+            vector![0.0, 0.0, 555.0],
             white.clone(),
         )),
         Box::new(Quad::new(
-            Vec3([0.0, 0.0, 555.0]),
-            Vec3([555.0, 0.0, 0.0]),
-            Vec3([0.0, 555.0, 0.0]),
+            vector![0.0, 0.0, 555.0],
+            vector![555.0, 0.0, 0.0],
+            vector![0.0, 555.0, 0.0],
             white.clone(),
         )),
         Box::new(ConstantMedium::new(
             Translate::new(
                 RotateY::new(
                     make_box(
-                        Vec3([0.0, 0.0, 0.0]),
-                        Vec3([165.0, 330.0, 165.0]),
+                        vector![0.0, 0.0, 0.0],
+                        vector![165.0, 330.0, 165.0],
                         white.clone(),
                     ),
                     15.0,
                 ),
-                Vec3([265.0, 0.0, 295.0]),
+                vector![265.0, 0.0, 295.0],
             ),
             0.01,
-            Isotropic::new(SolidColor::new(Vec3::scalar(0.0))),
+            Isotropic::new(SolidColor::new(SVector::<f64, 3>::zeros())),
         )),
         Box::new(ConstantMedium::new(
             Translate::new(
                 RotateY::new(
-                    make_box(Vec3([0.0, 0.0, 0.0]), Vec3([165.0, 165.0, 165.0]), white),
+                    make_box(vector![0.0, 0.0, 0.0], vector![165.0, 165.0, 165.0], white),
                     -18.0,
                 ),
-                Vec3([130.0, 0.0, 65.0]),
+                vector![130.0, 0.0, 65.0],
             ),
             0.01,
-            Isotropic::new(SolidColor::new(Vec3::scalar(1.0))),
+            Isotropic::new(SolidColor::new(SVector::<f64, 3>::repeat(1.0))),
         )),
     ];
 
@@ -597,12 +602,12 @@ fn cornell_smoke() -> RgbImage {
         200,
         50,
         40.0,
-        Vec3([278.0, 278.0, -800.0]),
-        Vec3([278.0, 278.0, 0.0]),
-        Vec3([0.0, 1.0, 0.0]),
+        vector![278.0, 278.0, -800.0],
+        vector![278.0, 278.0, 0.0],
+        vector![0.0, 1.0, 0.0],
         0.0,
         10.0,
-        Vec3([0.0, 0.0, 0.0]),
+        vector![0.0, 0.0, 0.0],
     );
 
     camera.render(&world)
@@ -612,7 +617,7 @@ fn fancy(image_width: u32, samples: u32, max_depth: u32) -> RgbImage {
     let mut rand = rand::thread_rng();
 
     let ground = Lambertian {
-        texture: SolidColor::new(Vec3([0.48, 0.83, 0.53])),
+        texture: SolidColor::new(vector![0.48, 0.83, 0.53]),
     };
 
     let mut boxes: Vec<Box<dyn Hittable>> = Vec::new();
@@ -627,8 +632,8 @@ fn fancy(image_width: u32, samples: u32, max_depth: u32) -> RgbImage {
             let z1 = z0 + w;
 
             boxes.push(Box::new(make_box(
-                Vec3([x0, y0, z0]),
-                Vec3([x1, y1, z1]),
+                vector![x0, y0, z0],
+                vector![x1, y1, z1],
                 ground.clone(),
             )));
         }
@@ -639,28 +644,28 @@ fn fancy(image_width: u32, samples: u32, max_depth: u32) -> RgbImage {
     let mut world: Vec<Box<dyn Hittable>> = vec![
         Box::new(Node::from_list(boxes)),
         Box::new(Quad::new(
-            Vec3([123.0, 554.0, 147.0]),
-            Vec3([300.0, 0.0, 0.0]),
-            Vec3([0.0, 0.0, 265.0]),
-            DiffuseLight::new(SolidColor::new(Vec3([7.0, 7.0, 7.0]))),
+            vector![123.0, 554.0, 147.0],
+            vector![300.0, 0.0, 0.0],
+            vector![0.0, 0.0, 265.0],
+            DiffuseLight::new(SolidColor::new(vector![7.0, 7.0, 7.0])),
         )),
         Box::new(Sphere::new(
-            Vec3([260.0, 150.0, 45.0]),
+            vector![260.0, 150.0, 45.0],
             50.0,
             Dielectric {
                 refraction_index: 1.5,
             },
         )),
         Box::new(Sphere::new(
-            Vec3([0.0, 150.0, 145.0]),
+            vector![0.0, 150.0, 145.0],
             50.0,
             Metal {
-                albedo: Vec3([0.8, 0.8, 0.9]),
+                albedo: vector![0.8, 0.8, 0.9],
                 fuzz: 1.0,
             },
         )),
         Box::new(Sphere::new(
-            Vec3([360.0, 150.0, 145.0]),
+            vector![360.0, 150.0, 145.0],
             70.0,
             Dielectric {
                 refraction_index: 1.5,
@@ -668,35 +673,35 @@ fn fancy(image_width: u32, samples: u32, max_depth: u32) -> RgbImage {
         )),
         Box::new(ConstantMedium::new(
             Sphere::new(
-                Vec3([360.0, 150.0, 145.0]),
+                vector![360.0, 150.0, 145.0],
                 70.0,
                 Dielectric {
                     refraction_index: 1.5,
                 },
             ),
             0.2,
-            Isotropic::new(SolidColor::new(Vec3([0.2, 0.4, 0.9]))),
+            Isotropic::new(SolidColor::new(vector![0.2, 0.4, 0.9])),
         )),
         Box::new(ConstantMedium::new(
             Sphere::new(
-                Vec3([0.0, 0.0, 0.0]),
+                vector![0.0, 0.0, 0.0],
                 5000.0,
                 Dielectric {
                     refraction_index: 1.5,
                 },
             ),
             0.0001,
-            Isotropic::new(SolidColor::new(Vec3([1.0, 1.0, 1.0]))),
+            Isotropic::new(SolidColor::new(vector![1.0, 1.0, 1.0])),
         )),
         Box::new(Sphere::new(
-            Vec3([400.0, 200.0, 400.0]),
+            vector![400.0, 200.0, 400.0],
             100.0,
             Lambertian {
                 texture: Image::new(earth_texture),
             },
         )),
         Box::new(Sphere::new(
-            Vec3([220.0, 280.0, 300.0]),
+            vector![220.0, 280.0, 300.0],
             80.0,
             Lambertian {
                 texture: Noise::<256>::new(0.2),
@@ -704,31 +709,31 @@ fn fancy(image_width: u32, samples: u32, max_depth: u32) -> RgbImage {
         )),
     ];
 
-    let center1 = Vec3::scalar(400.0);
-    let center2 = center1 + Vec3([30.0, 0.0, 0.0]);
+    let center1 = SVector::<f64, 3>::repeat(400.0);
+    let center2 = center1 + vector![30.0, 0.0, 0.0];
     world.push(Box::new(Sphere::moving(
         center1,
         center2,
         50.0,
         Lambertian {
-            texture: SolidColor::new(Vec3([0.7, 0.3, 0.1])),
+            texture: SolidColor::new(vector![0.7, 0.3, 0.1]),
         },
     )));
 
     let mut boxes2: Vec<Box<dyn Hittable>> = Vec::new();
     for _ in 0..1000 {
         boxes2.push(Box::new(Sphere::new(
-            Vec3::random_within(0.0, 165.0),
+            vec3::random_within(0.0, 165.0),
             10.0,
             Lambertian {
-                texture: SolidColor::new(Vec3::scalar(0.73)),
+                texture: SolidColor::new(SVector::<f64, 3>::repeat(0.73)),
             },
         )));
     }
 
     world.push(Box::new(Translate::new(
         RotateY::new(Node::from_list(boxes2), 15.0),
-        Vec3([-100.0, 270.0, 395.0]),
+        vector![-100.0, 270.0, 395.0],
     )));
 
     let world = Node::from_list(world);
@@ -739,13 +744,14 @@ fn fancy(image_width: u32, samples: u32, max_depth: u32) -> RgbImage {
         samples,
         max_depth,
         40.0,
-        Vec3([478.0, 278.0, -600.0]),
-        Vec3([278.0, 278.0, 0.0]),
-        Vec3([0.0, 1.0, 0.0]),
+        vector![478.0, 278.0, -600.0],
+        vector![278.0, 278.0, 0.0],
+        vector![0.0, 1.0, 0.0],
         0.0,
         10.0,
-        Vec3([0.0, 0.0, 0.0]),
+        vector![0.0, 0.0, 0.0],
     );
 
     camera.render(&world)
 }
+

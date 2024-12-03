@@ -1,24 +1,25 @@
-use crate::hittable::Hittable;
-use crate::ray::Ray;
-use crate::vec3::Vec3;
-use image::RgbImage;
+use image::{Rgb, RgbImage};
 use indicatif::{ProgressBar, ProgressStyle};
+use nalgebra::{vector, SVector, Unit};
 use rand::Rng;
 use rayon::prelude::*;
+
+use crate::hittable::Hittable;
+use crate::ray::Ray;
 
 pub struct Camera {
     image_width: u32,
     image_height: u32,
-    center: Vec3,
-    pixel00_loc: Vec3,
-    pixel_delta_u: Vec3,
-    pixel_delta_v: Vec3,
+    center: SVector<f64, 3>,
+    pixel00_loc: SVector<f64, 3>,
+    pixel_delta_u: SVector<f64, 3>,
+    pixel_delta_v: SVector<f64, 3>,
     samples_per_pixel: u32,
     max_depth: u32,
     defocus_angle: f64,
-    defocus_disk_u: Vec3,
-    defocus_disk_v: Vec3,
-    background: Vec3,
+    defocus_disk_u: SVector<f64, 3>,
+    defocus_disk_v: SVector<f64, 3>,
+    background: SVector<f64, 3>,
 }
 
 impl Camera {
@@ -30,12 +31,12 @@ impl Camera {
         samples_per_pixel: u32,
         max_depth: u32,
         vfov: f64,
-        look_from: Vec3,
-        look_at: Vec3,
-        vup: Vec3,
+        look_from: SVector<f64, 3>,
+        look_at: SVector<f64, 3>,
+        vup: SVector<f64, 3>,
         defocus_angle: f64,
         focus_dist: f64,
-        background: Vec3,
+        background: SVector<f64, 3>,
     ) -> Self {
         let image_height = ((image_width as f64 / aspect_ratio) as u32).max(1);
 
@@ -46,21 +47,21 @@ impl Camera {
         let viewport_height = 2.0 * h * focus_dist;
         let viewport_width = viewport_height * (image_width as f64 / image_height as f64);
 
-        let w = (look_from - look_at).unit();
-        let u = vup.cross(w).unit();
-        let v = w.cross(u);
+        let w = Unit::new_normalize(look_from - look_at);
+        let u = Unit::new_normalize(vup.cross(&w));
+        let v = w.cross(&u);
 
-        let viewport_u = viewport_width * u;
+        let viewport_u = viewport_width * *u;
         let viewport_v = viewport_height * -v;
 
         let pixel_delta_u = viewport_u / image_width as f64;
         let pixel_delta_v = viewport_v / image_height as f64;
 
-        let viewport_upper_left = center - (focus_dist * w) - viewport_u / 2.0 - viewport_v / 2.0;
+        let viewport_upper_left = center - (focus_dist * *w) - viewport_u / 2.0 - viewport_v / 2.0;
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
         let defocus_radius = focus_dist * (defocus_angle / 2.0).to_radians().tan();
-        let defocus_disk_u = u * defocus_radius;
+        let defocus_disk_u = *u * defocus_radius;
         let defocus_disk_v = v * defocus_radius;
 
         Camera {
@@ -87,7 +88,7 @@ impl Camera {
             ProgressStyle::with_template("{wide_bar} {pos}/{len} {elapsed_precise}").unwrap(),
         );
         image.par_enumerate_pixels_mut().for_each(|(x, y, pixel)| {
-            let mut color = Vec3::scalar(0.0);
+            let mut color = SVector::<f64, 3>::zeros();
             for _ in 0..self.samples_per_pixel {
                 let temp = self
                     .get_ray(x, y)
@@ -95,7 +96,20 @@ impl Camera {
                 color += temp;
             }
 
-            *pixel = (color / self.samples_per_pixel as f64).into();
+            let avg = color / self.samples_per_pixel as f64;
+            let mut smudged = avg.into_iter().map(|&x| {
+                if x > 0.0 {
+                    (x.sqrt().clamp(0.0, 0.999) * 256.0) as u8
+                } else {
+                    0
+                }
+            });
+
+            *pixel = Rgb([
+                smudged.next().unwrap(),
+                smudged.next().unwrap(),
+                smudged.next().unwrap(),
+            ]);
 
             progress_bar.inc(1);
         });
@@ -116,7 +130,7 @@ impl Camera {
             self.defocus_disk_sample()
         };
 
-        let direction = pixel_sample - origin;
+        let direction = Unit::new_normalize(pixel_sample - origin);
 
         let mut rand = rand::thread_rng();
         Ray {
@@ -126,13 +140,19 @@ impl Camera {
         }
     }
 
-    fn sample_square() -> Vec3 {
+    fn sample_square() -> SVector<f64, 3> {
         let mut rng = rand::thread_rng();
-        Vec3([rng.gen::<f64>() - 0.5, rng.gen::<f64>() - 0.5, 0.0])
+        vector![rng.gen::<f64>() - 0.5, rng.gen::<f64>() - 0.5, 0.0]
     }
 
-    fn defocus_disk_sample(&self) -> Vec3 {
-        let p = Vec3::random_in_unit_disk();
+    fn defocus_disk_sample(&self) -> SVector<f64, 3> {
+        let mut rand = rand::thread_rng();
+        let p = loop {
+            let p = vector![rand.gen_range(-1.0..1.0), rand.gen_range(-1.0..1.0), 0.0];
+            if p.magnitude_squared() < 1.0 {
+                break p
+            }
+        };
 
         self.center + (p[0] * self.defocus_disk_u) + (p[1] * self.defocus_disk_v)
     }

@@ -1,24 +1,26 @@
-use crate::vec3::Vec3;
 use image::RgbImage;
+use nalgebra::{vector, SVector, Unit};
 use rand::Rng;
 
+use crate::NEG_ONE_ONE_CLOSED;
+
 pub trait Texture: Sync {
-    fn value(&self, u: f64, v: f64, point: Vec3) -> Vec3;
+    fn value(&self, u: f64, v: f64, point: SVector<f64, 3>) -> SVector<f64, 3>;
 }
 
 #[derive(Debug, Clone)]
 pub struct SolidColor {
-    color: Vec3,
+    color: SVector<f64, 3>,
 }
 
 impl SolidColor {
-    pub fn new(color: Vec3) -> SolidColor {
+    pub fn new(color: SVector<f64, 3>) -> SolidColor {
         SolidColor { color }
     }
 }
 
 impl Texture for SolidColor {
-    fn value(&self, _u: f64, _v: f64, _point: Vec3) -> Vec3 {
+    fn value(&self, _u: f64, _v: f64, _point: SVector<f64, 3>) -> SVector<f64, 3> {
         self.color
     }
 }
@@ -45,7 +47,7 @@ where
     E: Texture,
     O: Texture,
 {
-    fn value(&self, u: f64, v: f64, point: Vec3) -> Vec3 {
+    fn value(&self, u: f64, v: f64, point: SVector<f64, 3>) -> SVector<f64, 3> {
         let x = (self.inv_scale * point[0]).floor();
         let y = (self.inv_scale * point[1]).floor();
         let z = (self.inv_scale * point[2]).floor();
@@ -69,9 +71,9 @@ impl Image {
 }
 
 impl Texture for Image {
-    fn value(&self, u: f64, v: f64, _point: Vec3) -> Vec3 {
+    fn value(&self, u: f64, v: f64, _point: SVector<f64, 3>) -> SVector<f64, 3> {
         if self.image.height() == 0 {
-            return Vec3([0.0, 1.0, 1.0]);
+            return vector![0.0, 1.0, 1.0];
         }
 
         let u = u.clamp(0.0, 1.0);
@@ -84,17 +86,17 @@ impl Texture for Image {
 
         let color_scale = 1.0 / 255.0;
 
-        Vec3([
+        vector![
             color_scale * pixel.0[0] as f64,
             color_scale * pixel.0[1] as f64,
             color_scale * pixel.0[2] as f64,
-        ])
+        ]
     }
 }
 
 #[derive(Debug, Copy, Clone)]
 pub struct Perlin<const N: usize> {
-    randvec: [Vec3; N],
+    randvec: [Unit<SVector<f64, 3>>; N],
     perm_x: [i32; N],
     perm_y: [i32; N],
     perm_z: [i32; N],
@@ -102,9 +104,10 @@ pub struct Perlin<const N: usize> {
 
 impl<const N: usize> Perlin<N> {
     pub fn new() -> Perlin<N> {
-        let mut vecs = [Vec3::scalar(0.0); N];
+        let mut rand = rand::thread_rng();
+        let mut vecs = [Unit::new_normalize(SVector::<f64, 3>::zeros()); N];
         for p in vecs.iter_mut() {
-            *p = Vec3::random_within(-1.0, 1.0).unit()
+            *p = Unit::new_normalize(SVector::<f64, 3>::from_distribution(&*NEG_ONE_ONE_CLOSED, &mut rand));
         }
 
         Perlin {
@@ -134,7 +137,7 @@ impl<const N: usize> Perlin<N> {
         perm
     }
 
-    pub fn noise(&self, point: Vec3) -> f64 {
+    pub fn noise(&self, point: SVector<f64, 3>) -> f64 {
         let u = point[0] - point[0].floor();
         let v = point[1] - point[1].floor();
         let w = point[2] - point[2].floor();
@@ -143,7 +146,7 @@ impl<const N: usize> Perlin<N> {
         let j = point[1].floor() as i32;
         let k = point[2].floor() as i32;
 
-        let mut c = [[[Vec3::scalar(0.0); 2]; 2]; 2];
+        let mut c = [[[Unit::new_normalize(SVector::<f64, 3>::zeros()); 2]; 2]; 2];
         for (di, ci) in c.iter_mut().enumerate() {
             for (dj, cj) in ci.iter_mut().enumerate() {
                 for (dk, ck) in cj.iter_mut().enumerate() {
@@ -158,7 +161,7 @@ impl<const N: usize> Perlin<N> {
         Perlin::<N>::perlin_interpolation(c, u, v, w)
     }
 
-    pub fn perlin_interpolation(c: [[[Vec3; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {
+    pub fn perlin_interpolation(c: [[[Unit<SVector<f64, 3>>; 2]; 2]; 2], u: f64, v: f64, w: f64) -> f64 {
         let uu = u * u * (3.0 - 2.0 * u);
         let vv = v * v * (3.0 - 2.0 * v);
         let ww = w * w * (3.0 - 2.0 * w);
@@ -167,11 +170,11 @@ impl<const N: usize> Perlin<N> {
         for (i, ci) in c.iter().enumerate() {
             for (j, cj) in ci.iter().enumerate() {
                 for (k, ck) in cj.iter().enumerate() {
-                    let weight = Vec3([u - i as f64, v - j as f64, w - k as f64]);
+                    let weight = vector![u - i as f64, v - j as f64, w - k as f64];
                     accum += (i as f64 * uu + (1.0 - i as f64) * (1.0 - uu))
                         * (j as f64 * vv + (1.0 - j as f64) * (1.0 - vv))
                         * (k as f64 * ww + (1.0 - k as f64) * (1.0 - ww))
-                        * ck.dot(weight);
+                        * ck.dot(&weight);
                 }
             }
         }
@@ -179,7 +182,7 @@ impl<const N: usize> Perlin<N> {
         accum
     }
 
-    pub fn turbulence(&self, point: Vec3, depth: i32) -> f64 {
+    pub fn turbulence(&self, point: SVector<f64, 3>, depth: i32) -> f64 {
         let mut accum = 0.0;
         let mut temp_p = point;
         let mut weight = 1.0;
@@ -210,8 +213,8 @@ impl<const N: usize> Noise<N> {
 }
 
 impl<const N: usize> Texture for Noise<N> {
-    fn value(&self, _u: f64, _v: f64, point: Vec3) -> Vec3 {
-        Vec3::scalar(0.5)
+    fn value(&self, _u: f64, _v: f64, point: SVector<f64, 3>) -> SVector<f64, 3> {
+        SVector::<f64, 3>::repeat(0.5)
             * (1.0 + (self.scale * point[2] + 10.0 * self.noise.turbulence(point, 7)).sin())
     }
 }

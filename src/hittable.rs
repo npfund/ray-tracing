@@ -1,14 +1,16 @@
+use std::f64::consts::PI;
+
+use rand::Rng;
+use nalgebra::{vector, SVector, Unit};
+
 use crate::aabb::Aabb;
 use crate::interval::Interval;
 use crate::material::Material;
 use crate::ray::Ray;
-use crate::vec3::Vec3;
-use rand::Rng;
-use std::f64::consts::PI;
 
 pub struct HitRecord<'m> {
-    pub point: Vec3,
-    pub normal: Vec3,
+    pub point: SVector<f64, 3>,
+    pub normal: Unit<SVector<f64, 3>>,
     pub t: f64,
     pub front_face: bool,
     pub material: &'m dyn Material,
@@ -39,7 +41,7 @@ impl Hittable for Vec<Box<dyn Hittable>> {
 
     fn bounding_box(&self) -> Aabb {
         if self.is_empty() {
-            return Aabb::from_points(Vec3::scalar(0.0), Vec3::scalar(0.0));
+            return Aabb::from_points(SVector::<f64, 3>::zeros(), SVector::<f64, 3>::zeros());
         }
 
         let mut bounds = Aabb::from_bounds(
@@ -55,8 +57,8 @@ impl Hittable for Vec<Box<dyn Hittable>> {
 }
 
 pub enum Center {
-    Stationary(Vec3),
-    InMotion(Vec3, Vec3),
+    Stationary(SVector<f64, 3>),
+    InMotion(SVector<f64, 3>, SVector<f64, 3>),
 }
 
 pub struct Sphere<M> {
@@ -67,8 +69,8 @@ pub struct Sphere<M> {
 }
 
 impl<M> Sphere<M> {
-    pub fn new(center: Vec3, radius: f64, material: M) -> Sphere<M> {
-        let rvec = Vec3::scalar(radius);
+    pub fn new(center: SVector<f64, 3>, radius: f64, material: M) -> Sphere<M> {
+        let rvec = SVector::<f64, 3>::repeat(radius);
         Sphere {
             center: Center::Stationary(center),
             radius,
@@ -77,8 +79,8 @@ impl<M> Sphere<M> {
         }
     }
 
-    pub fn moving(start: Vec3, end: Vec3, radius: f64, material: M) -> Sphere<M> {
-        let rvec = Vec3::scalar(radius);
+    pub fn moving(start: SVector<f64, 3>, end: SVector<f64, 3>, radius: f64, material: M) -> Sphere<M> {
+        let rvec = SVector::<f64, 3>::repeat(radius);
         let box1 = Aabb::from_points(start - rvec, start + rvec);
         let box2 = Aabb::from_points(end - rvec, end + rvec);
 
@@ -90,14 +92,14 @@ impl<M> Sphere<M> {
         }
     }
 
-    pub fn center(&self, time: f64) -> Vec3 {
+    pub fn center(&self, time: f64) -> SVector<f64, 3> {
         match self.center {
             Center::Stationary(center) => center,
             Center::InMotion(start, direction) => start + direction * time,
         }
     }
 
-    pub fn get_sphere_uv(&self, point: Vec3) -> (f64, f64) {
+    pub fn get_sphere_uv(&self, point: SVector<f64, 3>) -> (f64, f64) {
         let theta = (-point[1]).acos();
         let phi = (-point[2]).atan2(point[0]) + PI;
 
@@ -112,9 +114,9 @@ where
     fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let center = self.center(ray.time);
         let oc = center - ray.origin;
-        let a = ray.direction.length_squared();
-        let h = ray.direction.dot(oc);
-        let c = oc.length_squared() - self.radius.powi(2);
+        let a = ray.direction.magnitude_squared();
+        let h = ray.direction.dot(&oc);
+        let c = oc.magnitude_squared() - self.radius.powi(2);
         let discriminant = h.powi(2) - a * c;
 
         if discriminant < 0.0 {
@@ -133,7 +135,7 @@ where
 
         let point = ray.at(root);
         let outward_normal = (point - center) / self.radius;
-        let front_face = ray.direction.dot(outward_normal) < 0.0;
+        let front_face = ray.direction.dot(&outward_normal) < 0.0;
         let normal = if front_face {
             outward_normal
         } else {
@@ -144,7 +146,7 @@ where
 
         Some(HitRecord {
             point,
-            normal,
+            normal: Unit::new_normalize(normal),
             t: root,
             front_face,
             material: &self.material,
@@ -159,27 +161,27 @@ where
 }
 
 pub struct Quad<M> {
-    q: Vec3,
-    u: Vec3,
-    v: Vec3,
-    w: Vec3,
+    q: SVector<f64, 3>,
+    u: SVector<f64, 3>,
+    v: SVector<f64, 3>,
+    w: SVector<f64, 3>,
     material: M,
     bounds: Aabb,
-    normal: Vec3,
+    normal: Unit<SVector<f64, 3>>,
     d: f64,
 }
 
 impl<M> Quad<M> {
-    pub fn new(q: Vec3, u: Vec3, v: Vec3, material: M) -> Quad<M> {
+    pub fn new(q: SVector<f64, 3>, u: SVector<f64, 3>, v: SVector<f64, 3>, material: M) -> Quad<M> {
         let diagonal_1 = Aabb::from_points(q, q + u + v);
         let diagonal_2 = Aabb::from_points(q + u, q + v);
         let bounds = Aabb::from_bounds(diagonal_1, diagonal_2);
 
-        let n = u.cross(v);
-        let normal = n.unit();
-        let d = normal.dot(q);
+        let n = u.cross(&v);
+        let normal = Unit::new_normalize(n);
+        let d = normal.dot(&q);
 
-        let w = n / n.dot(n);
+        let w = n / n.dot(&n);
 
         Quad {
             q,
@@ -205,28 +207,28 @@ where
     M: Material,
 {
     fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
-        let denom = self.normal.dot(ray.direction);
+        let denom = self.normal.dot(&ray.direction);
 
         if denom.abs() < 1e-8 {
             return None;
         }
 
-        let t = (self.d - self.normal.dot(ray.origin)) / denom;
+        let t = (self.d - self.normal.dot(&ray.origin)) / denom;
         if !ray_t.contains(t) {
             return None;
         }
 
         let intersection = ray.at(t);
         let planar_hit = intersection - self.q;
-        let alpha = self.w.dot(planar_hit.cross(self.v));
-        let beta = self.w.dot(self.u.cross(planar_hit));
+        let alpha = self.w.dot(&planar_hit.cross(&self.v));
+        let beta = self.w.dot(&self.u.cross(&planar_hit));
         let (u, v) = if Self::is_interior(alpha, beta) {
             (alpha, beta)
         } else {
             return None;
         };
 
-        let front_face = ray.direction.dot(self.normal) < 0.0;
+        let front_face = ray.direction.dot(&self.normal) < 0.0;
         let normal = if front_face {
             self.normal
         } else {
@@ -250,50 +252,50 @@ where
 }
 
 pub fn make_box(
-    a: Vec3,
-    b: Vec3,
+    a: SVector<f64, 3>,
+    b: SVector<f64, 3>,
     material: impl Material + Clone + 'static,
 ) -> Vec<Box<dyn Hittable>> {
-    let min = Vec3([a[0].min(b[0]), a[1].min(b[1]), a[2].min(b[2])]);
-    let max = Vec3([a[0].max(b[0]), a[1].max(b[1]), a[2].max(b[2])]);
+    let min = vector![a[0].min(b[0]), a[1].min(b[1]), a[2].min(b[2])];
+    let max = vector![a[0].max(b[0]), a[1].max(b[1]), a[2].max(b[2])];
 
-    let dx = Vec3([max[0] - min[0], 0.0, 0.0]);
-    let dy = Vec3([0.0, max[1] - min[1], 0.0]);
-    let dz = Vec3([0.0, 0.0, max[2] - min[2]]);
+    let dx = vector![max[0] - min[0], 0.0, 0.0];
+    let dy = vector![0.0, max[1] - min[1], 0.0];
+    let dz = vector![0.0, 0.0, max[2] - min[2]];
 
     vec![
         Box::new(Quad::new(
-            Vec3([min[0], min[1], max[2]]),
+            vector![min[0], min[1], max[2]],
             dx,
             dy,
             material.clone(),
         )),
         Box::new(Quad::new(
-            Vec3([max[0], min[1], max[2]]),
+            vector![max[0], min[1], max[2]],
             -dz,
             dy,
             material.clone(),
         )),
         Box::new(Quad::new(
-            Vec3([max[0], min[1], min[2]]),
+        vector![max[0], min[1], min[2]],
             -dx,
             dy,
             material.clone(),
         )),
         Box::new(Quad::new(
-            Vec3([min[0], min[1], min[2]]),
+            vector![min[0], min[1], min[2]],
             dz,
             dy,
             material.clone(),
         )),
         Box::new(Quad::new(
-            Vec3([min[0], max[1], max[2]]),
+            vector![min[0], max[1], max[2]],
             dx,
             -dz,
             material.clone(),
         )),
         Box::new(Quad::new(
-            Vec3([min[0], min[1], min[2]]),
+            vector![min[0], min[1], min[2]],
             dx,
             dz,
             material.clone(),
@@ -303,7 +305,7 @@ pub fn make_box(
 
 pub struct Translate<H> {
     object: H,
-    offset: Vec3,
+    offset: SVector<f64, 3>,
     bounds: Aabb,
 }
 
@@ -311,7 +313,7 @@ impl<H> Translate<H>
 where
     H: Hittable,
 {
-    pub fn new(object: H, offset: Vec3) -> Translate<H> {
+    pub fn new(object: H, offset: SVector<f64, 3>) -> Translate<H> {
         let bounds = object.bounding_box() + offset;
         Translate {
             object,
@@ -361,8 +363,8 @@ where
 
         let original_bounds = object.bounding_box();
 
-        let mut min = Vec3::scalar(f64::MAX);
-        let mut max = Vec3::scalar(f64::MIN);
+        let mut min = SVector::<f64, 3>::repeat(f64::MAX);
+        let mut max = SVector::<f64, 3>::repeat(f64::MIN);
 
         for i in 0..2 {
             for j in 0..2 {
@@ -377,11 +379,11 @@ where
                     let newx = cos_theta * x + sin_theta * z;
                     let newz = -sin_theta * x + cos_theta * z;
 
-                    let tester = Vec3([newx, y, newz]);
+                    let tester = vector![newx, y, newz];
 
                     for c in 0..3 {
-                        min.0[c] = min[c].min(tester[c]);
-                        max.0[c] = max[c].max(tester[c]);
+                        min[c] = min[c].min(tester[c]);
+                        max[c] = max[c].max(tester[c]);
                     }
                 }
             }
@@ -404,31 +406,31 @@ where
 {
     fn hit(&self, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let mut origin = ray.origin;
-        let mut direction = ray.direction;
+        let mut direction = ray.direction.into_inner();
 
-        origin.0[0] = self.cos_theta * ray.origin[0] - self.sin_theta * ray.origin[2];
-        origin.0[2] = self.sin_theta * ray.origin[0] + self.cos_theta * ray.origin[2];
+        origin[0] = self.cos_theta * ray.origin[0] - self.sin_theta * ray.origin[2];
+        origin[2] = self.sin_theta * ray.origin[0] + self.cos_theta * ray.origin[2];
 
-        direction.0[0] = self.cos_theta * ray.direction[0] - self.sin_theta * ray.direction[2];
-        direction.0[2] = self.sin_theta * ray.direction[0] + self.cos_theta * ray.direction[2];
+        direction[0] = self.cos_theta * ray.direction[0] - self.sin_theta * ray.direction[2];
+        direction[2] = self.sin_theta * ray.direction[0] + self.cos_theta * ray.direction[2];
 
         let rotated = Ray {
             origin,
-            direction,
+            direction: Unit::new_normalize(direction),
             time: ray.time,
         };
 
         self.object.hit(&rotated, ray_t).map(|mut hit| {
             let mut p = hit.point;
-            p.0[0] = self.cos_theta * hit.point[0] + self.sin_theta * hit.point[2];
-            p.0[2] = -self.sin_theta * hit.point[0] + self.cos_theta * hit.point[2];
+            p[0] = self.cos_theta * hit.point[0] + self.sin_theta * hit.point[2];
+            p[2] = -self.sin_theta * hit.point[0] + self.cos_theta * hit.point[2];
 
-            let mut normal = hit.normal;
-            normal.0[0] = self.cos_theta * hit.normal[0] + self.sin_theta * hit.normal[2];
-            normal.0[0] = -self.sin_theta * hit.normal[0] + self.cos_theta * hit.normal[2];
+            let mut normal = hit.normal.into_inner();
+            normal[0] = self.cos_theta * hit.normal[0] + self.sin_theta * hit.normal[2];
+            normal[0] = -self.sin_theta * hit.normal[0] + self.cos_theta * hit.normal[2];
 
             hit.point = p;
-            hit.normal = normal;
+            hit.normal = Unit::new_normalize(normal);
 
             hit
         })
@@ -484,7 +486,7 @@ where
                     hit.t = 0.0
                 }
 
-                let ray_length = ray.direction.length();
+                let ray_length = ray.direction.magnitude();
                 let distance_inside_boundary = (hit2.t - hit.t) * ray_length;
                 let hit_distance = self.neg_inv_density * rand.gen::<f64>().ln();
 
@@ -494,7 +496,7 @@ where
 
                 Some(HitRecord {
                     point: ray.at(hit.t),
-                    normal: Vec3([1.0, 0.0, 0.0]),
+                    normal: Unit::new_normalize(vector![1.0, 0.0, 0.0]),
                     t: hit.t + hit_distance / ray_length,
                     front_face: true,
                     material: &self.phase_function,

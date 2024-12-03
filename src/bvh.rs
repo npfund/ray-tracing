@@ -1,8 +1,9 @@
+use std::cmp::Ordering;
+
 use crate::aabb::Aabb;
 use crate::hittable::{HitRecord, Hittable};
 use crate::interval::Interval;
 use crate::ray::Ray;
-use std::cmp::Ordering;
 
 pub struct Node {
     left: Box<dyn Hittable>,

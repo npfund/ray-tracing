@@ -1,7 +1,9 @@
+use std::ops::Add;
+
+use nalgebra::SVector;
+
 use crate::interval::Interval;
 use crate::ray::Ray;
-use crate::vec3::Vec3;
-use std::ops::Add;
 
 #[derive(Debug, Clone)]
 pub struct Aabb {
@@ -42,7 +44,7 @@ impl Aabb {
         self
     }
 
-    pub fn from_points(a: Vec3, b: Vec3) -> Aabb {
+    pub fn from_points(a: SVector<f64, 3>, b: SVector<f64, 3>) -> Aabb {
         let x = if a[0] <= b[0] {
             Interval::new(a[0], b[0])
         } else {
@@ -121,10 +123,10 @@ impl Aabb {
     }
 }
 
-impl Add<Vec3> for Aabb {
+impl Add<SVector<f64, 3>> for Aabb {
     type Output = Aabb;
 
-    fn add(self, rhs: Vec3) -> Self::Output {
+    fn add(self, rhs: SVector<f64, 3>) -> Self::Output {
         Aabb {
             x: self.x + rhs[0],
             y: self.y + rhs[1],

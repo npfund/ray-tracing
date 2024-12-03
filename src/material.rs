@@ -1,16 +1,18 @@
+use nalgebra::{SVector, Unit};
+use rand::Rng;
+
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
 use crate::texture::Texture;
-use crate::vec3::Vec3;
-use rand::Rng;
+use crate::vec3::{near_zero, random_unit_vector, reflect, refract};
 
 pub trait Material: Sync {
-    fn scatter(&self, _ray: &Ray, _hit: &HitRecord) -> Option<(Ray, Vec3)> {
+    fn scatter(&self, _ray: &Ray, _hit: &HitRecord) -> Option<(Ray, SVector<f64, 3>)> {
         None
     }
 
-    fn emitted(&self, _u: f64, _v: f64, _point: Vec3) -> Vec3 {
-        Vec3::scalar(0.0)
+    fn emitted(&self, _u: f64, _v: f64, _point: SVector<f64, 3>) -> SVector<f64, 3> {
+        SVector::<f64, 3>::zeros()
     }
 }
 
@@ -23,12 +25,12 @@ impl<T> Material for Lambertian<T>
 where
     T: Texture,
 {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vec3)> {
-        let potential_direction = hit.normal + Vec3::random_unit_vector();
-        let direction = if potential_direction.near_zero() {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, SVector<f64, 3>)> {
+        let potential_direction = *hit.normal + *random_unit_vector();
+        let direction = if near_zero(potential_direction) {
             hit.normal
         } else {
-            potential_direction
+            Unit::new_normalize(potential_direction)
         };
 
         let scattered = Ray {
@@ -42,21 +44,21 @@ where
 }
 
 pub struct Metal {
-    pub albedo: Vec3,
+    pub albedo: SVector<f64, 3>,
     pub fuzz: f64,
 }
 
 impl Material for Metal {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vec3)> {
-        let reflected = Vec3::reflect(ray.direction, hit.normal).unit()
-            + (self.fuzz * Vec3::random_unit_vector());
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, SVector<f64, 3>)> {
+        let reflected = *Unit::new_normalize(reflect(*ray.direction, *hit.normal))
+            + (self.fuzz * *random_unit_vector());
         let scattered = Ray {
             origin: hit.point,
-            direction: reflected,
+            direction: Unit::new_normalize(reflected),
             time: ray.time,
         };
 
-        if scattered.direction.dot(hit.normal) > 0.0 {
+        if scattered.direction.dot(&hit.normal) > 0.0 {
             Some((scattered, self.albedo))
         } else {
             None
@@ -77,30 +79,30 @@ impl Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vec3)> {
-        let attenuation = Vec3::scalar(1.0);
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, SVector<f64, 3>)> {
+        let attenuation = SVector::<f64, 3>::repeat(1.0);
         let ri = if hit.front_face {
             1.0 / self.refraction_index
         } else {
             self.refraction_index
         };
 
-        let unit_direction = ray.direction.unit();
-        let cos_theta = (-unit_direction).dot(hit.normal).min(1.0);
+        let unit_direction = ray.direction;
+        let cos_theta = (-unit_direction).dot(&hit.normal).min(1.0);
         let sin_theta = (1.0 - cos_theta.powi(2)).sqrt();
 
         let cannot_refract = ri * sin_theta > 1.0;
         let mut rand = rand::thread_rng();
         let direction =
             if cannot_refract || Dielectric::reflectance(cos_theta, ri) > rand.gen::<f64>() {
-                Vec3::reflect(unit_direction, hit.normal)
+                reflect(*unit_direction, *hit.normal)
             } else {
-                Vec3::refract(unit_direction, hit.normal, ri)
+                refract(*unit_direction, *hit.normal, ri)
             };
 
         let scattered = Ray {
             origin: hit.point,
-            direction,
+            direction: Unit::new_normalize(direction),
             time: ray.time,
         };
 
@@ -126,7 +128,7 @@ impl<T> Material for DiffuseLight<T>
 where
     T: Texture,
 {
-    fn emitted(&self, u: f64, v: f64, point: Vec3) -> Vec3 {
+    fn emitted(&self, u: f64, v: f64, point: SVector<f64, 3>) -> SVector<f64, 3> {
         self.texture.value(u, v, point)
     }
 }
@@ -145,11 +147,11 @@ impl<T> Material for Isotropic<T>
 where
     T: Texture,
 {
-    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, Vec3)> {
+    fn scatter(&self, ray: &Ray, hit: &HitRecord) -> Option<(Ray, SVector<f64, 3>)> {
         Some((
             Ray {
                 origin: hit.point,
-                direction: Vec3::random_unit_vector(),
+                direction: random_unit_vector(),
                 time: ray.time,
             },
             self.texture.value(hit.u, hit.v, hit.point),

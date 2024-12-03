@@ -9,3 +9,7 @@ rand = "0.8.5"
 rayon = "*"
 clap = { version = "4.5.13", features = ["derive"] }
 indicatif = { version = "0.17.9", features = ["improved_unicode"] }
+nalgebra = { version = "0.33.2", features = ["rand"] }
+
+[profile.release]
+debug = true
